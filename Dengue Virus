@@ -13,13 +13,26 @@ Things to consider:
 - Sporadic and seasonal disease in EU. Mosquitoes thrive in temperatures between 15 °C and 35 °C.
 - Prevalence of asymptomatic dengue infections was 59.26%, with 65.52% during outbreaks and 30.78% during non-outbreak periods.
 
+Existing diagnostic assays:
+- Nucleic Acid Amplification Tests (NAATs)
+- NS1 Antigen Test
+- Serological Tests
+- Plaque Reduction Neutralization Test (PRNT)
+
+*related existing study:
+- Single molecule, near full-length genome sequencing of dengue virus -> uses ONT
+
 
 
 Ref:
 - https://www.nature.com/articles/d41586-023-03407-6
 - https://www.ecdc.europa.eu/en/disease-vectors/surveillance-and-disease-data/mosquito-maps
 - https://pubmed.ncbi.nlm.nih.gov/37463631/
+- https://www.cdc.gov/dengue/healthcare-providers/testing/index.html
+- https://www.nature.com/articles/s41598-020-75374-1
 
 
-Notes:
-- The virus can be detected using RT-PCR or NS1 antigen tests within the first week after the onset of symptoms.
+
+
+Question:
+1.  
