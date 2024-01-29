@@ -1,0 +1,7 @@
+   1 try { . "c:\Users\Nelso\AppData\Local\Programs\Microsoft VS Code\resources\app\out\vs\workbench\contrib\terminal... 
+   2 conda activate entrez-direct
+   3 pwd
+   4 cd C:/Users/Nelso/OneDrive/Documents/Thesis
+   5 list
+   6 conda list
+   7 conda install entrez-direct
