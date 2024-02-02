@@ -36,6 +36,7 @@ Ref:
 =============================================================================================================================
 
 
+TWiV 633: Singapore viral Podcast:
 - Dengue mapping: Identifying where antibodies bind to the virus by growing the virus with antibodies until an escape mutant emerges for sequencing
 - Dengue symptoms: Most infections result in mild fever; some cases are asymptomatic. Severe symptoms can lead to hemorrhagic fever, organ failure, and sometimes death
 - Severe dengue: About 5% of cases, depending on location, can lead to severe vascular leakage, known as dengue hemorrhagic fever or shock syndrome, which requires medical intervention
@@ -43,4 +44,29 @@ Ref:
 - Immune response: The immune system's role is significant in the pathogenesis of severe dengue, potentially leading to vascular leakage
 - *Mast cell involvement: Mast cells which are known for their role in allergic reactions, are implicated in dengue pathogenesis and associated with vascular leakage
 
+
+
+DengueSeq Protocol:
+Serotype Specific 
+Pros:
+- Offers detailed insights into the genetic characteristics and mutations of a specific serotype
+- Good for targeted research and specific epidemiological tracking
+Cons:
+- Might miss broader genomic variations across different serotypes
+- Might limit effectiveness in comprehensive surveillance
+
+Universal Pan-Serotype
+Pros:
+- Enable the detection and analysis of all serotypes within a single assay
+- Beneficial for broad surveillance purposes, understanding cross-serotype interactions, and monitoring genetic shifts among the virus population
+Cons:
+- Potentially lower specificity for individual serotypes and possibly higher complexity and cost
+
+From the protocols mentioned in "DengueSeq: A pan-serotype whole genome amplicon sequencing protocol for dengue virus V.2", both methods seem to output an identical result. 
+
+
+Question:
+1. The protocol mentioned sequencing the dengue viruses using Illumina. Would ONT yield the same result in terms of % genome coverage and in terms of specific vs. universal pan serotype results?
+2. The following statement was made: "We used the serotype-specific assay to sequence undiluted virus stocks. We found that all genotypes within each serotype had high coverage, except for sylvatic dengue virus serotype 2 (genotype VI)". Is this due to mismatches in the primer or probe sequences, which resulted in lower sensitivity?
+3. I have a question about the chart in the "code_to_genomes wk2 quality control" slide. Is there a direct relationship between the quality of the sequenced sample and a higher percentage of coverage X20? Or does a high percentage of quantity not necessarily indicate a high percentage of quality?
 
