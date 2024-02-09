@@ -1,0 +1,5 @@
+/usr/libexec/grepconf.sh: line 5: grep: command not found
+/home/people/23203786/.bashrc: line 31: dirname: command not found
+/home/people/23203786/.bashrc: line 32: dirname: command not found
+/home/people/23203786/.bash_profile: line 17: /opt/software/gaussian/g16/bsd/g16.profile: Permission denied
+Error: cannot find file: /home/people/23203786/scratch/training/wk2/data/SRR18511568/SRR18511568.fastq,/home/people/23203786/scratch/training/wk2/data/ERR3661022/ERR3661022.fastq

@@ -1,0 +1,4 @@
+/var/spool/slurm/d/job2372841/slurm_script: line 10: config.sh: No such file or directory
+Unknown option: --
+usage: python [option] ... [-c cmd | -m mod | file | -] [arg] ...
+Try `python -h' for more information.

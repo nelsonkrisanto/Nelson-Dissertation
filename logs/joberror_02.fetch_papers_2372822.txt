@@ -1,0 +1,2 @@
+usage: scrappaper.py [-h] --url URL [--pages PAGES]
+scrappaper.py: error: the following arguments are required: --url

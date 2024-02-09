@@ -1,0 +1,2 @@
+Project subdirectories are set up in /home/people/23203786/scratch/_temp.
+Scripts directory /home/people/23203786/scratch/_temp/scripts already exists.
