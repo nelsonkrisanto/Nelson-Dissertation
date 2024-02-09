@@ -2,8 +2,8 @@
 #SBATCH --job-name=02.fetch_papers
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=nelson.krisanto@ucdconnect.ie,nelson_krisanto@hotmail.com # Where to send mail
-#SBATCH --error=/home/people/23203786/scratch/_temp/logs/joberror_%x_%j.txt  # Error log
-#SBATCH --output=/home/people/23203786/scratch/_temp/logs/joblog_%x_%j.txt  # Standard output log
+#SBATCH --error=/home/people/23203786/scratch/Nelson-Dissertation/logs/error_%x_%j.txt  # Error log
+#SBATCH --output=/home/people/23203786/scratch/Nelson-Dissertation/logs/log_%x_%j.txt  # Standard output log
 #SBATCH --cpus-per-task=5
 
 # Load configuration from a separate file

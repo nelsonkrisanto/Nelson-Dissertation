@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set project directories and paths
-my_dir="/home/people/23203786/scratch/_temp"
+my_dir="/home/people/23203786/scratch/Nelson-Dissertation"
 capsid_path="$my_dir/raw_data/reference_sequences_VP1"
 rdrp_path="$my_dir/raw_data/reference_sequences_RdRp"
 scripts_path="$my_dir/scripts"
