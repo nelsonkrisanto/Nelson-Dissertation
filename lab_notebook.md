@@ -10,6 +10,9 @@ Modify the sections marked as "## adjust" to suit your research needs. When you 
 To tailor the search query for your need, use the NCBI Nucleotide Advanced Search Builder. The image below (Figure 1.1) illustrates the Advanced Search Builder interface, which you can access at the following URL: [NCBI Nucleotide Advanced Search Builder](https://www.ncbi.nlm.nih.gov/nuccore/advanced).
 
 ![Figure 1.1 - NCBI Nucleotide Advanced Search Builder](images/01_01.png)
+<p align="center">
+  Figure 1.1 - NCBI Nucleotide Advanced Search Builder
+</p>
 
 In the Advanced Search Builder, adjust the search parameters as necessary. Your configured parameters will reflect in the search details field, as highlighted in Figure 1.1.
 
