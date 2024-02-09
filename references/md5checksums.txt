@@ -1,0 +1,4 @@
+0ee8c1859e6934f871d694f4529dece8  GCF_000871845.1_ViralProj20183_genomic.fna.gz
+3ebaf96ccf739ece229f2f69f436a56d  GCF_000862125.1_ViralProj15306_genomic.fna.gz
+8dd7f17405e0f7929a7c522a95773eff  GCF_000866625.1_ViralProj15598_genomic.fna.gz
+7924789bdda0c31aace1d0d31959bc49  GCF_000865065.1_ViralProj15599_genomic.fna.gz
