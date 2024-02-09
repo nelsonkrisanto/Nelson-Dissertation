@@ -4,10 +4,10 @@
 #SBATCH --mail-user=nelson.krisanto@ucdconnect.ie,nelson_krisanto@hotmail.com # Where to send mail
 #SBATCH --error=/home/people/23203786/scratch/Nelson-Dissertation/logs/error_%x_%j.txt  # Error log
 #SBATCH --output=/home/people/23203786/scratch/Nelson-Dissertation/logs/log_%x_%j.txt  # Standard output log
-#SBATCH --cpus-per-task=2
+#SBATCH --cpus-per-task=5
 
 # Load configuration from a separate file
-source "config.sh"
+source "00.config.sh"
 
 # Load anaconda module
 module load anaconda/3.5.2

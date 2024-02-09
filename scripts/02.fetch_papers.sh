@@ -7,10 +7,10 @@
 #SBATCH --cpus-per-task=5
 
 # Load configuration from a separate file
-source "config.sh"
+source "00.config.sh"
 
 # Define variables
-output_directory="/home/people/23203786/scratch/_temp/data/primers"
+output_directory="$my_dir/data/primers"
 query="https://pubmed.ncbi.nlm.nih.gov/?term=dengue+virus+primers"
 
 # Create output directory

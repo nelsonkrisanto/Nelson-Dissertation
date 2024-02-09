@@ -5,6 +5,7 @@ my_dir="/home/people/23203786/scratch/Nelson-Dissertation"
 capsid_path="$my_dir/raw_data/reference_sequences_VP1"
 rdrp_path="$my_dir/raw_data/reference_sequences_RdRp"
 scripts_path="$my_dir/scripts"
+logs_path="$my_dir/logs"
 scrappaper="/home/people/23203786/tools/ScrapPaper/scrappaper.py"
 entrezdirect="/home/people/23203786/tools/entrez-direct_env"
 
