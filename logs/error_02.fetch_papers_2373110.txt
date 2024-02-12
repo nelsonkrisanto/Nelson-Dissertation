@@ -1,0 +1,2 @@
+/var/spool/slurm/d/job2373110/slurm_script: line 10: 00.config.sh: No such file or directory
+mkdir: cannot create directory ‘/data’: Permission denied
