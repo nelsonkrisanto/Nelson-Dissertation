@@ -3,8 +3,8 @@ from Bio.Seq import Seq
 from Bio.SeqUtils import MeltingTemp as mt
 
 # Load the Excel file
-file_path = '/home/people/23203786/test/'  # Update this with the path to your Excel file
-file = 'scrapped_pubmed_vF.xlsx'
+file_path = '/home/people/23203786/scratch/Nelson-Dissertation/data/primers/'  # Update this with the path to your Excel file
+file = 'test_data.csv'
 df = pd.read_excel(file_path+file, header=1)  # Assuming the actual data starts from the second row
 
 # Function to calculate melting temperature
