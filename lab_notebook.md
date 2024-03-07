@@ -16,6 +16,10 @@ To tailor the search query for your need, use the NCBI Nucleotide Advanced Searc
 
 In the Advanced Search Builder, adjust the search parameters as necessary. Your configured parameters will reflect in the search details field, as highlighted in Figure 1.1.
 
+### Fetching NCBI Data: `02.fetch_papers.sh`
+
+
+
 
 ## Pre-requisite/Dependencies
 The following module, environment, and packages are needed in this project:
