@@ -11,10 +11,21 @@
 *.fastq
 *.fna
 *.gz
+*.fasta
 
-# x
+# Ignore BWA
+*.sai
+*.amb
+*.ann
+*.bwt
+*.pac
+*.sa
+*.log
+
+
+
+# Ignore folders
 logs/
 output/
 raw_data/
 references/
-results/
