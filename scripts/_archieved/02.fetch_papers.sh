@@ -6,6 +6,9 @@
 #SBATCH --output=/home/people/23203786/scratch/Nelson-Dissertation/logs/log_%x_%j.txt  # Standard output log
 #SBATCH --cpus-per-task=5
 
+# Load configuration from a separate file
+source "00.config.sh"
+
 # Set the path for ScrapPaper
 my_dir="/home/people/23203786/scratch/Nelson-Dissertation"
 scrappaper="/home/people/23203786/tools/ScrapPaper/scrappaper.py"

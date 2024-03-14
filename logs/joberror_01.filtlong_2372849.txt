@@ -1,14 +1,0 @@
-/usr/libexec/grepconf.sh: line 5: grep: command not found
-/home/people/23203786/.bashrc: line 31: dirname: command not found
-/home/people/23203786/.bashrc: line 32: dirname: command not found
-/home/people/23203786/.bash_profile: line 17: /opt/software/gaussian/g16/bsd/g16.profile: Permission denied
-
-Scoring long reads
-  274 reads (199,407 bp)
-
-Filtering long reads
-  target: 179,466 bp
-  reads already fall below target after filtering
-
-Outputting passed long reads
-

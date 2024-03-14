@@ -16,7 +16,7 @@ module load anaconda/3.5.2
 source activate $entrezdirect
 
 # Define the output directory for dengue virus sequences
-output_dir="$my_dir/$project_dir/raw_data/NCBI_dengue_data" ## adjust
+output_dir="$my_dir/raw_data/NCBI_dengue_data" ## adjust
 mkdir -p "$output_dir"
 
 # Perform the search to get dengue virus sequences. Adjust the search term as needed.
