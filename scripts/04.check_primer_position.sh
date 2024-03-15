@@ -23,7 +23,7 @@ cd "$output_dir" || { echo "Failed to change directory to $output_dir"; exit 1; 
 
 # Define file paths
 primers_file="$my_dir/primers/dengue_primers.fasta"
-output_tsv="$output_dir/mapping_positions.tsv"
+output_tsv="/home/people/23203786/scratch/Nelson-Dissertation/results/tsv/mapping_positions.tsv"
 
 # Create the header for the TSV file
 echo -e "Primer\tReference\tStart\tEnd" > "$output_tsv" || { echo "Failed to write header to $output_tsv"; exit 1; }
