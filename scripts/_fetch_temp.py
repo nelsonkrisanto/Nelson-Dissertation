@@ -5,7 +5,7 @@ from itertools import product
 
 # Load the Excel file
 file_path = 'C:/Users/Nelso/OneDrive/Documents/Thesis/data/'
-file = 'cleanned_nodupes_v1.xlsx'
+file = 'cleanned_primers.xlsx'
 df = pd.read_excel(file_path + file, header=0)
 
 # Ambiguous base mappings
@@ -48,12 +48,12 @@ def calculate_tm_avg(sequence, tm_type):
 
 
 # Apply the function to calculate the average Tm min and Tm max for each sequence
-df['Tm min avg (°C)'] = df['Sequence'].apply(lambda x: calculate_tm_avg(x, 'min'))
-df['Tm max avg (°C)'] = df['Sequence'].apply(lambda x: calculate_tm_avg(x, 'max'))
+df['Tm_min'] = df['Sequence'].apply(lambda x: calculate_tm_avg(x, 'min'))
+df['Tm_max'] = df['Sequence'].apply(lambda x: calculate_tm_avg(x, 'max'))
 
-# Save the updated DataFrame back to an Excel file
-output_file = 'up_' + file
+# Save the updated DataFrame to a CSV file
+output_file = ('primer_metadata.csv')  # Change the file extension to .csv
 output_file_path = file_path
-df.to_excel(output_file_path + output_file, index=False)
+df.to_csv(output_file_path + output_file, index=False)
 
-print(f"Updated Excel file saved as '{output_file_path + output_file}'")
+print(f"Updated CSV file saved as '{output_file_path + output_file}'")

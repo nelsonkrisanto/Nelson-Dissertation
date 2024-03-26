@@ -1,22 +1,25 @@
 #!/bin/bash
-#SBATCH --job-name=02.fetch_papers
+#SBATCH --job-name=05.primer_combinastions
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=nelson.krisanto@ucdconnect.ie
 #SBATCH --error=/home/people/23203786/scratch/Nelson-Dissertation/logs/error_%x_%j.txt
 #SBATCH --output=/home/people/23203786/scratch/Nelson-Dissertation/logs/log_%x_%j.txt
 #SBATCH --cpus-per-task=5
 
-# Load configuration from a separate file
-#source "$my_dir/$project_dir/config.sh"
+# Directory where the TSV files are located
+tsv_dir="/home/people/23203786/scratch/Nelson-Dissertation/results/tsv"
 
 # Load Python module
 module load python/3.9.15
 
-# Path to the primer combinations script
-combine_script="$my_dir/$project_dir/scripts/primer_combinations.py"
+# Change to the directory where the TSV files are located
+cd "$tsv_dir"
 
-# Execute the primer combinations script
-python "$combine_script" "/home/people/23203786/scratch/Nelson-Dissertation/results/tsv/mapping_positions.tsv" "/home/people/23203786/scratch/Nelson-Dissertation/results/tsv/primer_metadata.tsv"
+# Path to the primer combinations script
+combine_script="/home/people/23203786/scratch/Nelson-Dissertation/scripts/primer_combinations.py"
+
+# Execute the primer combinations script with the mapping_positions.tsv as an argument
+python "$combine_script" "mapping_positions.tsv"
 
 # Unload Python module
 module unload python/3.9.15

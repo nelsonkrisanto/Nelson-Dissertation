@@ -22,16 +22,16 @@ def generate_primer_combinations(input_file):
         print("Searching for valid primer combinations")
         # Iterate through the merged dataframe to find valid primer combinations
         for _, row1 in merged_df.iterrows():
-            if row1['Primer'].endswith('-F') and row1['orientation'] == 'forward':
+            if row1['Primer'].endswith('_F'):
                 for _, row2 in merged_df.iterrows():
-                    if row2['Primer'].endswith('-R') and row1['Reference'] == row2['Reference'] and row2['Genogroup'] == row1['Genogroup'] and row2['orientation'] == 'reverse':
+                    if row2['Primer'].endswith('_R') and row1['Reference'] == row2['Reference']:
                         diff = abs(row1['Start'] - row2['Start'])
                         if diff > 150:
                             amplicon_length = row2['Start'] - row1['Start']
                             if 100 < amplicon_length < 1000:  # Filter amplicon length
                                 combination_name = f"{row1['Primer']}_{row2['Primer']}"
                                 
-                                # Calculate absolute and rounded differences
+                                # Calculate absolute and rounded differences in Tm values
                                 tm_max_diff = round(abs(row1['Tm_max'] - row2['Tm_max']))
                                 tm_min_diff = round(abs(row1['Tm_min'] - row2['Tm_min']))
                                 
@@ -41,11 +41,7 @@ def generate_primer_combinations(input_file):
                                         'Reverse_Primer': row2['Primer'],
                                         'Combination_Name': combination_name,
                                         'Reference': row1['Reference'],
-                                        'Amplicon_Length': amplicon_length,
-                                        'Genogroup': row1['Genogroup'],
-                                        'Forward_Start': row1['Start'],
-                                        'Forward_End': row1['End'],
-                                        'Reverse_Start': row2['Start']
+                                        'Amplicon_Length': amplicon_length
                                     })
                                     print(f"Found a valid primer combination: {combination_name}")
 
@@ -63,11 +59,6 @@ def generate_primer_combinations(input_file):
                 primer_combinations_df.to_csv(output_file, sep='\t', index=False)
                 print(f"Primer combinations saved to {output_file}")
 
-                # Create a new dataframe for insilico_pcr_primers.tsv
-                insilico_pcr_df = pd.DataFrame(primer_combinations_df, columns=['Forward_Primer', 'Reverse_Primer', 'Combination_Name'])
-                insilico_pcr_output_file = 'insilico_pcr_primers.tsv'
-                insilico_pcr_df.to_csv(insilico_pcr_output_file, sep='\t', index=False, header=False)
-                print(f"insilico_pcr_primers saved to {insilico_pcr_output_file}")
             except Exception as e:
                 print(f"An error occurred while saving primer combinations: {e}")
         else:
@@ -77,8 +68,8 @@ def generate_primer_combinations(input_file):
         print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:  # Expecting two arguments: script name and input file
-        print("Usage: python combine.py mapping_positions.tsv primer_metadata.tsv")
+    if len(sys.argv) != 2:  # Expecting one argument: script name and input file
+        print("Usage: python combine.py mapping_positions.tsv")
     else:
         input_file = sys.argv[1]
         generate_primer_combinations(input_file)
