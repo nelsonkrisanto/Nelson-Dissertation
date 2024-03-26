@@ -1,47 +1,55 @@
 import pandas as pd
 from Bio.Seq import Seq
 from Bio.SeqUtils import MeltingTemp as mt
+from itertools import product
 
 # Load the Excel file
-file_path = 'C:/Users/Nelso/OneDrive/Documents/Thesis/data/'  # Update this with the path to your Excel file
+file_path = 'C:/Users/Nelso/OneDrive/Documents/Thesis/data/'
 file = 'cleanned_nodupes_v1.xlsx'
-df = pd.read_excel(file_path + file, header=0)  # Use header=0 if column names are in the first row
+df = pd.read_excel(file_path + file, header=0)
 
-# Function to replace ambiguous bases for Tm min calculation (choose weaker bonds)
-def replace_ambiguous_min(sequence):
-    return sequence.upper().replace('N', 'A').replace('R', 'A').replace('Y', 'T')\
-                           .replace('S', 'C').replace('W', 'A').replace('K', 'T')\
-                           .replace('M', 'A').replace('B', 'T').replace('D', 'A')\
-                           .replace('H', 'A').replace('V', 'A')
+# Ambiguous base mappings
+ambiguous_bases = {
+    'N': ['A', 'T', 'G', 'C'],
+    'R': ['A', 'G'],
+    'Y': ['C', 'T'],
+    'S': ['G', 'C'],
+    'W': ['A', 'T'],
+    'K': ['G', 'T'],
+    'M': ['A', 'C'],
+    'B': ['C', 'G', 'T'],
+    'D': ['A', 'G', 'T'],
+    'H': ['A', 'C', 'T'],
+    'V': ['A', 'C', 'G']
+}
 
-# Function to replace ambiguous bases for Tm max calculation (choose stronger bonds)
-def replace_ambiguous_max(sequence):
-    return sequence.upper().replace('N', 'G').replace('R', 'G').replace('Y', 'C')\
-                           .replace('S', 'G').replace('W', 'G').replace('K', 'G')\
-                           .replace('M', 'C').replace('B', 'G').replace('D', 'G')\
-                           .replace('H', 'C').replace('V', 'G')
+def generate_sequences(sequence):
+    sequence = sequence.upper()
+    combinations = [ambiguous_bases.get(nuc, [nuc]) for nuc in sequence]
+    return [''.join(seq) for seq in product(*combinations)]
 
-# Adjusted function to calculate minimum melting temperature
-def calculate_tm_min(sequence):
-    if pd.isnull(sequence):
-        return None
-    seq = Seq(replace_ambiguous_min(sequence))
-    return round(mt.Tm_Wallace(seq), 2)
+def calculate_tm_avg(sequence, tm_type):
+    sequences = generate_sequences(sequence)
+    tm_values = []
+    for seq in sequences:
+        try:
+            if tm_type == 'min':
+                tm_values.append(mt.Tm_Wallace(Seq(seq)))
+            elif tm_type == 'max':
+                tm_values.append(mt.Tm_NN(Seq(seq)))
+        except ValueError as e:
+            # Skip sequences that cause errors
+            print(f"Skipping sequence {seq} due to error: {e}")
+            continue
 
-# Adjusted function to calculate maximum melting temperature
-def calculate_tm_max(sequence):
-    if pd.isnull(sequence):
-        return None
-    seq = Seq(replace_ambiguous_max(sequence))
-    try:
-        return round(mt.Tm_NN(seq), 2)
-    except ValueError as e:
-        print(f"Error processing sequence {sequence}: {e}")
-        return None
+    if tm_values:  # Check if the list is not empty
+        return round(sum(tm_values) / len(tm_values), 2)
+    return None
 
-# Apply the functions to calculate Tm min and Tm max for each sequence
-df['Tm min (°C)'] = df['Sequence'].apply(calculate_tm_min)
-df['Tm max (°C)'] = df['Sequence'].apply(calculate_tm_max)
+
+# Apply the function to calculate the average Tm min and Tm max for each sequence
+df['Tm min avg (°C)'] = df['Sequence'].apply(lambda x: calculate_tm_avg(x, 'min'))
+df['Tm max avg (°C)'] = df['Sequence'].apply(lambda x: calculate_tm_avg(x, 'max'))
 
 # Save the updated DataFrame back to an Excel file
 output_file = 'up_' + file
