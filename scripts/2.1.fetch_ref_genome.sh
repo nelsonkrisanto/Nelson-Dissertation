@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=_fetch_ref_genome  # Job name
+#SBATCH --job-name=2.1.fetch_ref_genome  # Job name
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=nelson.krisanto@ucdconnect.ie,nelson_krisanto@hotmail.com # Where to send mail
 #SBATCH --error=/home/people/23203786/scratch/Nelson-Dissertation/logs/error_%x_%j.txt  # Error log

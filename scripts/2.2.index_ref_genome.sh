@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=_index_ref_genome
+#SBATCH --job-name=2.2.index_ref_genome
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=nelson.krisanto@ucdconnect.ie
 #SBATCH --error=/home/people/23203786/scratch/Nelson-Dissertation/logs/error_%x_%j.txt
