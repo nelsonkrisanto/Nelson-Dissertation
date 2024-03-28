@@ -1,96 +1,100 @@
 import pandas as pd
+import sys
 
 def calculate_average_tm(min_tm, max_tm):
-    avg_tm = (min_tm + max_tm) / 2
-    return avg_tm
+    """Calculate the average melting temperature (Tm) of a primer."""
+    return (min_tm + max_tm) / 2
 
-def check_tm_condition(tm, min_tm, max_tm):
-    avg_tm = calculate_average_tm(min_tm, max_tm)
-    return (tm >= min_tm and tm <= max_tm) or abs(tm - min_tm) <= 10 or abs(max_tm - tm) <= 10
+def generate_nested_primer_combinations(input_file):
+    try:
+        # Load the mapping data
+        print(f"Loading mapping data from {input_file}")
+        df_mapping = pd.read_csv(input_file, delimiter='\t')
 
-def main():
-    mapping_positions_file = input("Enter the path to mapping_positions.tsv: ")
-    primer_metadata_file = input("Enter the path to primer_metadata.tsv: ")
-    primer_combinations_file = input("Enter the path to primer_combinations.tsv: ")
+        # Load the primer metadata
+        print("Loading primer metadata from primer_metadata.tsv")
+        df_metadata = pd.read_csv('primer_metadata.tsv', delimiter='\t')
 
-    mapping_positions = pd.read_table(mapping_positions_file, sep="\t")
-    primer_metadata = pd.read_table(primer_metadata_file, sep="\t")
-    primer_combinations = pd.read_table(primer_combinations_file, sep="\t")
+        # Merge mapping data with primer metadata
+        print("Merging dataframes based on 'Primer' column")
+        merged_df = pd.merge(df_mapping, df_metadata, on='Primer', how='inner')
+        print("Merged dataframes successfully.")
 
-    mapping_positions = mapping_positions.merge(primer_metadata, on='Primer', how='left')
-    reverse_primers = mapping_positions[mapping_positions['Primer'].str.endswith('R')]
+        # List to store first-round primer combinations
+        primer_combinations_first_round = []
 
-    result_df = pd.DataFrame(columns=['Combination_Name', 'Valid_Primer_Count'])
-    selected_primer_info = []
-    unique_pcr_counter = 1
+        # Search for valid first-round primer combinations
+        print("Searching for first round valid primer combinations")
+        for _, row1 in merged_df.iterrows():
+            if row1['Primer'].endswith('_F'):  # Select forward primers
+                for _, row2 in merged_df.iterrows():
+                    if row2['Primer'].endswith('_R') and row1['Reference'] == row2['Reference']:  # Pair with reverse primers from the same reference
+                        # Calculate the amplicon length
+                        amplicon_length = abs(row2['Start'] - row1['Start'])
+                        if 100 < amplicon_length < 1000:  # Filter based on amplicon length
+                            combination_name = f"{row1['Primer']}_{row2['Primer']}"
+                            
+                            # Calculate average Tm for both primers
+                            avg_tm_fwd = calculate_average_tm(row1['Tm_min'], row1['Tm_max'])
+                            avg_tm_rev = calculate_average_tm(row2['Tm_min'], row2['Tm_max'])
+                            
+                            # Check if the Tm difference is within the acceptable range
+                            if abs(avg_tm_fwd - avg_tm_rev) <= 5:
+                                # Add the combination to the list
+                                primer_combinations_first_round.append({
+                                    'Forward_Primer': row1['Primer'],
+                                    'Reverse_Primer': row2['Primer'],
+                                    'Combination_Name': combination_name,
+                                    'Reference': row1['Reference'],
+                                    'Amplicon_Length_First_Round': amplicon_length
+                                })
+                                print(f"Found a valid first-round primer combination: {combination_name}")
 
-    for i in range(len(primer_combinations)):
-        combination_name = primer_combinations['Combination_Name'][i]
-        forward_start = primer_combinations['Forward_Start'][i]
-        reverse_start = primer_combinations['Reverse_Start'][i]
-        genogroup = primer_combinations['Genogroup'][i]
-        ref = primer_combinations['Reference'][i]
-        
-        forward_primer = primer_combinations['Forward_Primer'][i]
-        reverse_primer = primer_combinations['Reverse_Primer'][i]
-        
-        tm_min = mapping_positions.loc[mapping_positions['Primer'] == forward_primer, 'Tm_min'].values[0]
-        tm_max = mapping_positions.loc[mapping_positions['Primer'] == forward_primer, 'Tm_max'].values[0]
-        
-        tm = calculate_average_tm(tm_min, tm_max)
-        
-        valid_reverse_primers = reverse_primers[
-            (reverse_primers['Reference'] == ref) &
-            (reverse_primers['Start'] > (forward_start + 100)) &
-            (reverse_primers['Start'] < reverse_start)
-        ]
-        
-        valid_reverse_primers = valid_reverse_primers[
-            valid_reverse_primers.apply(lambda row: check_tm_condition(tm, tm_min, tm_max), axis=1)
-        ]
-        
-        valid_reverse_primers = valid_reverse_primers[
-            (~valid_reverse_primers['Combination_Name'].str.contains(forward_primer)) &
-            (valid_reverse_primers['Genogroup'] == genogroup) &
-            (valid_reverse_primers['Reference'] == ref)
-        ]
-        
-        result_df = result_df.append({
-            'Combination_Name': combination_name,
-            'Valid_Primer_Count': len(valid_reverse_primers)
-        }, ignore_index=True)
-        
-        if len(valid_reverse_primers) > 0:
-            reverse_end = reverse_primers[reverse_primers['Primer'] == valid_reverse_primers['Primer'].iloc[0]]['End'].values[0]
-            
-            first_round_amplicon = primer_combinations['Amplicon_Length'][i]
-            second_round_amplicon = reverse_end - forward_start
-            
-            for j in range(len(first_round_amplicon)):
-                if first_round_amplicon[j] > second_round_amplicon[j]:
-                    print(f"Storing selected information for combination: {combination_name}")
-                    selected_primer_info.append({
-                        'first_round_pcr': combination_name,
-                        'second_round_pcr': f"{primer_combinations['Forward_Primer'][i]}-{valid_reverse_primers['Primer'].iloc[0]}",
-                        'nested_pcr': f"{combination_name}_{primer_combinations['Forward_Primer'][i]}_{valid_reverse_primers['Primer'].iloc[0]}",
-                        'Forward_Start': forward_start,
-                        'Reverse_Start': valid_reverse_primers['Start'].iloc[0],
-                        'first_round_amplicon': first_round_amplicon[j],
-                        'second_round_amplicon': second_round_amplicon[j],
-                        'Genogroup': genogroup,
-                        'Reference': ref,
-                        'New_Primer': valid_reverse_primers['Primer'].iloc[0],
-                        'nested_pcr_type': "Semi_Nested_PCR"
-                    })
-                    unique_pcr_counter += 1
-                else:
-                    print(f"Amplicon length condition not satisfied for combination: {combination_name}")
+        # List to store second-round primer combinations
+        primer_combinations_second_round = []
 
-    result_df_combined = pd.DataFrame(selected_primer_info)
-    result_df_combined = result_df_combined.drop_duplicates()
-    result_df_filtered = result_df_combined[result_df_combined['second_round_amplicon'] > 100]
+        # Search for valid second-round primer combinations within first-round amplicons
+        print("Searching for second round valid primer combinations within first-round amplicons")
+        for combo in primer_combinations_first_round:
+            for _, fwd in merged_df.iterrows():
+                if fwd['Primer'].endswith('_F') and fwd['Reference'] == combo['Reference']:
+                    for _, rev in merged_df.iterrows():
+                        if rev['Primer'].endswith('_R') and rev['Reference'] == combo['Reference']:
+                            # Ensure the second-round primers are within the first-round amplicon
+                            if combo['Forward_Primer_Start'] < fwd['Start'] < rev['Start'] < combo['Reverse_Primer_Start']:
+                                amplicon_length_second = abs(rev['Start'] - fwd['Start'])
+                                if 80 < amplicon_length_second < 500:  # Filter based on nested amplicon length
+                                    second_round_name = f"{fwd['Primer']}-{rev['Primer']} within {combo['Combination_Name']}"
+                                    primer_combinations_second_round.append({
+                                        'First_Round_Combination': combo['Combination_Name'],
+                                        'Second_Round_Forward_Primer': fwd['Primer'],
+                                        'Second_Round_Reverse_Primer': rev['Primer'],
+                                        'Second_Round_Combination_Name': second_round_name,
+                                        'Amplicon_Length_Second_Round': amplicon_length_second
+                                    })
+                                    print(f"Found a valid second-round primer combination: {second_round_name}")
 
-    result_df_filtered.to_csv("nested_primers.tsv", sep="\t", index=False)
+        # Save the second-round primer combinations if any were found
+        if primer_combinations_second_round:
+            try:
+                primer_combinations_df = pd.DataFrame(primer_combinations_second_round)
+                primer_combinations_df.drop_duplicates(subset='Second_Round_Combination_Name', inplace=True)
+
+                output_file = 'nested_primer_combinations.tsv'
+                primer_combinations_df.to_csv(output_file, sep='\t', index=False)
+                print(f"Nested primer combinations saved to {output_file}")
+
+            except Exception as e:
+                print(f"An error occurred while saving nested primer combinations: {e}")
+        else:
+            print("No valid nested primer combinations found.")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) != 2:
+        print("Usage: python script_name.py mapping_positions.tsv")
+    else:
+        input_file = sys.argv[1]
+        generate_nested_primer_combinations(input_file)
