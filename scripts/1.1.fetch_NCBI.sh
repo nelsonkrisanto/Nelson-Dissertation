@@ -20,15 +20,15 @@ output_dir="$my_dir/raw_data/NCBI_dengue_data" ## adjust
 mkdir -p "$output_dir"
 
 # Perform the search to get dengue virus sequences. Adjust the search term as needed.
-esearch -db nuccore -query "Dengue Virus[ORGN] AND 300:11000[SLEN]" | efetch -format fasta > "$output_dir/dengue_virus_sequences.fasta" ## adjust
+esearch -db nuccore -query "Dengue Virus[ORGN] AND 300:11000[SLEN]" | efetch -format fasta > "$output_dir/1.1.dengue_virus_sequences.fasta" 
 
-echo "Fetched dengue virus sequences are saved in: $output_dir/dengue_virus_sequences.fasta" ## adjust
+echo "Fetched dengue virus sequences are saved in: $output_dir/1.1.dengue_virus_sequences.fasta" 
 
 # Specify the input FASTA file path for dengue virus
-fasta_file="$output_dir/dengue_virus_sequences.fasta" ## adjust
+fasta_file="$output_dir/1.1.dengue_virus_sequences.fasta"
 
 # Specify the output TSV file path for dengue virus sequence information
-tsv_file="$output_dir/dengue_sequence_info.tsv" ## adjust
+tsv_file="$output_dir/1.1.dengue_sequence_info.tsv"
 
 # Rename fasta headers with accession IDs only
 sed -i 's/^>\([^ ]*\) .*/>\1/' "$fasta_file"
