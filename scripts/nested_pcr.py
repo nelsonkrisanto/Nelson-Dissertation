@@ -1,4 +1,5 @@
 import pandas as pd
+import sys
 
 def calculate_average_tm(min_tm, max_tm):
     """Calculate the average melting temperature (Tm) of a primer."""
@@ -30,7 +31,7 @@ def generate_nested_primer_combinations(mapping_file, metadata_file):
                     if row2['Primer'].endswith('_R') and row1['Reference'] == row2['Reference']:  # Pair with reverse primers from the same reference
                         # Calculate the amplicon length
                         amplicon_length = abs(row2['Start'] - row1['Start'])
-                        if 100 < amplicon_length < 1000:  # Filter based on amplicon length
+                        if amplicon_length > 300:  # Filter based on amplicon length
                             combination_name = f"{row1['Primer']}_{row2['Primer']}"
                             
                             # Calculate average Tm for both primers
@@ -66,7 +67,7 @@ def generate_nested_primer_combinations(mapping_file, metadata_file):
                             # Ensure the second-round primers are within the first-round amplicon
                             if first_round_fwd_start < fwd['Start'] < rev['Start'] < first_round_rev_start:
                                 amplicon_length_second = abs(rev['Start'] - fwd['Start'])
-                                if 80 < amplicon_length_second < 500:  # Filter based on nested amplicon length
+                                if amplicon_length_second < 100:  # Filter based on nested amplicon length
                                     second_round_name = f"{fwd['Primer']}-{rev['Primer']} within {combo['Combination_Name']}"
                                     primer_combinations_second_round.append({
                                         'First_Round_Combination': combo['Combination_Name'],
@@ -84,7 +85,7 @@ def generate_nested_primer_combinations(mapping_file, metadata_file):
                 primer_combinations_df = pd.DataFrame(primer_combinations_second_round)
                 primer_combinations_df.drop_duplicates(subset='Second_Round_Combination_Name', inplace=True)
 
-                output_file = 'nested_primer_combinations.tsv'
+                output_file = 'nested_primer_combinations_updated.tsv'
                 primer_combinations_df.to_csv(output_file, sep='\t', index=False)
                 print(f"Nested primer combinations saved to {output_file}")
 
@@ -97,8 +98,9 @@ def generate_nested_primer_combinations(mapping_file, metadata_file):
         print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python script_name.py mapping_positions.tsv")
+    if len(sys.argv) != 3:  # Expecting two arguments now: the script name, mapping file, and metadata file
+        print("Usage: python nested_pcr.py mapping_positions.tsv primer_metadata.tsv")
     else:
-        input_file = sys.argv[1]
-        generate_nested_primer_combinations(input_file)
+        mapping_file = sys.argv[1]
+        metadata_file = sys.argv[2]
+        generate_nested_primer_combinations(mapping_file, metadata_file)
