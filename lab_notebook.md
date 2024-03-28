@@ -17,14 +17,6 @@ To tailor the search query for your need, use the NCBI Nucleotide Advanced Searc
 
 In the Advanced Search Builder, adjust the search parameters as necessary. Your configured parameters will reflect in the search details field, as highlighted in Figure 1.1.
 
-<<<<<<< HEAD
-### Fetching NCBI Data: `02.fetch_papers.sh`
-*script need to be adjusted
-#### Fork ScrapPaper: `02.fetch_papers.sh`
-https://github.com/nelsonkrisanto/ScrapPaper
-run scrappaper_vF.py
-enter the pubmed link, e.g.: https://pubmed.ncbi.nlm.nih.gov/?term=dengue+virus+primer
-=======
 ### Fetching NCBI Data: `02.scrappaper.py`
 Forked from 'ScrapPaper' by M. R. Rafsanjani. The script has been modified as follows:
 - Removed the Google Scholar function.
@@ -32,7 +24,6 @@ Forked from 'ScrapPaper' by M. R. Rafsanjani. The script has been modified as fo
 - Added a function to merge the results.
 - Added a function to extract the year from references.
 - Modified the pandas write section to append new data instead of replacing it.
->>>>>>> 783d4190cc41b3f190ccfc13b53a9c10b8947d71
 
 ### Scrape PCR Primers Sequence from the NCBI Data Result
 This requires manual work. Go through the results from the 'Fetching NCBI Data' section and look for the Dengue PCR primers. Follow these guidelines:
@@ -42,12 +33,9 @@ This requires manual work. Go through the results from the 'Fetching NCBI Data' 
 - Remove artificial tags, probes, and RT elements.
 - Replace spaces with underscores for primer names.
 
-<<<<<<< HEAD
-### 
-=======
 ### Convert cleanned CSV PCR Primers result to FASTA format: `03.csvtofasta.py`
-.......to be updated
->>>>>>> 783d4190cc41b3f190ccfc13b53a9c10b8947d71
+- Input: cleanned_primers.csv
+- Output: dengue_primers.fasta
 
 ### Check Primer Position: `04.check_primer_position.sh`
 Forked from 'Benchmarking_PCR_ONT' by Amy Fitzpatrick. The script has been modified as follows:
@@ -55,14 +43,8 @@ Forked from 'Benchmarking_PCR_ONT' by Amy Fitzpatrick. The script has been modif
 - 
 .......to be updated
 
-<<<<<<< HEAD
 
 
-
-=======
-
-
->>>>>>> 783d4190cc41b3f190ccfc13b53a9c10b8947d71
 ## Pre-requisite/Dependencies
 The following module, environment, and packages are needed in this project:
 * Module: 

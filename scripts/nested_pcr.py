@@ -1,19 +1,18 @@
 import pandas as pd
-import sys
 
 def calculate_average_tm(min_tm, max_tm):
     """Calculate the average melting temperature (Tm) of a primer."""
     return (min_tm + max_tm) / 2
 
-def generate_nested_primer_combinations(input_file):
+def generate_nested_primer_combinations(mapping_file, metadata_file):
     try:
         # Load the mapping data
-        print(f"Loading mapping data from {input_file}")
-        df_mapping = pd.read_csv(input_file, delimiter='\t')
+        print(f"Loading mapping data from {mapping_file}")
+        df_mapping = pd.read_csv(mapping_file, delimiter='\t')
 
         # Load the primer metadata
-        print("Loading primer metadata from primer_metadata.tsv")
-        df_metadata = pd.read_csv('primer_metadata.tsv', delimiter='\t')
+        print(f"Loading primer metadata from {metadata_file}")
+        df_metadata = pd.read_csv(metadata_file, delimiter='\t')
 
         # Merge mapping data with primer metadata
         print("Merging dataframes based on 'Primer' column")
@@ -56,12 +55,16 @@ def generate_nested_primer_combinations(input_file):
         # Search for valid second-round primer combinations within first-round amplicons
         print("Searching for second round valid primer combinations within first-round amplicons")
         for combo in primer_combinations_first_round:
+            # Find the start positions of the first-round primers in the merged_df
+            first_round_fwd_start = merged_df.loc[merged_df['Primer'] == combo['Forward_Primer'], 'Start'].values[0]
+            first_round_rev_start = merged_df.loc[merged_df['Primer'] == combo['Reverse_Primer'], 'Start'].values[0]
+
             for _, fwd in merged_df.iterrows():
                 if fwd['Primer'].endswith('_F') and fwd['Reference'] == combo['Reference']:
                     for _, rev in merged_df.iterrows():
                         if rev['Primer'].endswith('_R') and rev['Reference'] == combo['Reference']:
                             # Ensure the second-round primers are within the first-round amplicon
-                            if combo['Forward_Primer_Start'] < fwd['Start'] < rev['Start'] < combo['Reverse_Primer_Start']:
+                            if first_round_fwd_start < fwd['Start'] < rev['Start'] < first_round_rev_start:
                                 amplicon_length_second = abs(rev['Start'] - fwd['Start'])
                                 if 80 < amplicon_length_second < 500:  # Filter based on nested amplicon length
                                     second_round_name = f"{fwd['Primer']}-{rev['Primer']} within {combo['Combination_Name']}"
@@ -73,6 +76,7 @@ def generate_nested_primer_combinations(input_file):
                                         'Amplicon_Length_Second_Round': amplicon_length_second
                                     })
                                     print(f"Found a valid second-round primer combination: {second_round_name}")
+
 
         # Save the second-round primer combinations if any were found
         if primer_combinations_second_round:
