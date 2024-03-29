@@ -4,7 +4,7 @@
 #SBATCH --mail-user=nelson.krisanto@ucdconnect.ie
 #SBATCH --error=/home/people/23203786/scratch/Nelson-Dissertation/logs/error_%x_%j.txt
 #SBATCH --output=/home/people/23203786/scratch/Nelson-Dissertation/logs/log_%x_%j.txt
-#SBATCH --cpus-per-task=5
+#SBATCH --cpus-per-task=10
 
 # Directory where the TSV files are located
 tsv_dir="/home/people/23203786/scratch/Nelson-Dissertation/results/tsv"
@@ -16,7 +16,7 @@ module load python/3.9.15
 cd "$tsv_dir"
 
 # Path to the primer combinations script
-combine_script="/home/people/23203786/scratch/Nelson-Dissertation/scripts/primer_combinations.py"
+combine_script="/home/people/23203786/scratch/Nelson-Dissertation/scripts/primer_combinations_op.py"
 
 # Execute the primer combinations script with the mapping_positions.tsv as an argument
 python "$combine_script" "mapping_positions.tsv"

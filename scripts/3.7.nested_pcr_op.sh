@@ -17,7 +17,7 @@ module load python/3.9.15
 cd "$tsv_dir"
 
 # Path to the primer combinations script
-nested_script="/home/people/23203786/scratch/Nelson-Dissertation/scripts/nested_pcr.py"
+nested_script="/home/people/23203786/scratch/Nelson-Dissertation/scripts/nested_pcr_op.py"
 
 # Execute the primer combinations script with the required file paths as arguments
 python "$nested_script" "mapping_positions.tsv" "primer_metadata.tsv"
