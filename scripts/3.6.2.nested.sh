@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=3.6.conventional
+#SBATCH --job-name=3.6.2.nested
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=nelson.krisanto@ucdconnect.ie
 #SBATCH --error=/home/people/23203786/scratch/Nelson-Dissertation/logs/error_%x_%j.txt
@@ -16,10 +16,10 @@ module load python/3.9.15
 cd "$tsv_dir"
 
 # Path to the primer combinations script
-combine_script="/home/people/23203786/scratch/Nelson-Dissertation/scripts/conventional.py"
+nested_script="/home/people/23203786/scratch/Nelson-Dissertation/scripts/nested.py"
 
-# Execute the primer combinations script with the mapping_positions.tsv as an argument
-python "$combine_script" "mapping_positions.tsv"
+# Execute the primer combinations script with the required file paths as arguments
+python "$nested_script" "mapping_positions.tsv" "primer_metadata.tsv"
 
 # Unload Python module
 module unload python/3.9.15
