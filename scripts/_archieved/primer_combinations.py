@@ -55,7 +55,7 @@ def generate_primer_combinations(input_file):
 
                 print("Saving primer combinations to primer_combinations.tsv")
                 # Save the primer combinations dataframe to primer_combinations.tsv
-                output_file = 'primer_combinations.tsv'
+                output_file = 'primer_combinations_ori.tsv'
                 primer_combinations_df.to_csv(output_file, sep='\t', index=False)
                 print(f"Primer combinations saved to {output_file}")
 

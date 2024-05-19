@@ -4,7 +4,7 @@ from Bio.SeqUtils import MeltingTemp as mt
 from itertools import product
 
 # Load the Excel file
-file_path = 'C:/Users/Nelso/OneDrive/Documents/Thesis/data/'
+file_path = '/home/people/23203786/scratch/Nelson-Dissertation/primers/'
 file = 'cleanned_primers.xlsx'
 df = pd.read_excel(file_path + file, header=0)
 
@@ -46,13 +46,12 @@ def calculate_tm_avg(sequence, tm_type):
         return round(sum(tm_values) / len(tm_values), 2)
     return None
 
-
 # Apply the function to calculate the average Tm min and Tm max for each sequence
 df['Tm_min'] = df['Sequence'].apply(lambda x: calculate_tm_avg(x, 'min'))
 df['Tm_max'] = df['Sequence'].apply(lambda x: calculate_tm_avg(x, 'max'))
 
 # Save the updated DataFrame to a CSV file
-output_file = ('primer_metadata.csv')  # Change the file extension to .csv
+output_file = 'primer_metadata.csv'  # Change the file extension to .csv
 output_file_path = file_path
 df.to_csv(output_file_path + output_file, index=False)
 

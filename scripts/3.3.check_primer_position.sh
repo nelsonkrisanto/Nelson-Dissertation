@@ -10,13 +10,15 @@
 my_dir="/home/people/23203786/scratch/Nelson-Dissertation"
 reference_path="/home/people/23203786/scratch/Nelson-Dissertation/references"
 output_dir="/home/people/23203786/scratch/Nelson-Dissertation/results/primers"
+temp_dir="$output_dir/temp"
 
 # Load necessary modules
 module load bwa/0.7
 module load samtools/1.10
 
-# Ensure the output directory exists
+# Ensure the output and temporary directories exist
 mkdir -p "$output_dir" || { echo "Failed to create output directory"; exit 1; }
+mkdir -p "$temp_dir" || { echo "Failed to create temporary directory"; exit 1; }
 
 # Change to the output directory
 cd "$output_dir" || { echo "Failed to change directory to $output_dir"; exit 1; }
@@ -26,18 +28,23 @@ primers_file="$my_dir/primers/dengue_primers.fasta"
 output_tsv="/home/people/23203786/scratch/Nelson-Dissertation/results/tsv/mapping_positions.tsv"
 
 # Create the header for the TSV file
-echo -e "Primer\tReference\tStart\tEnd" > "$output_tsv" || { echo "Failed to write header to $output_tsv"; exit 1; }
+echo -e "Primer\tGenotype\tReference\tStart\tEnd" > "$output_tsv" || { echo "Failed to write header to $output_tsv"; exit 1; }
 
 # Loop to read each primer and reference and perform the alignment
 while IFS= read -r line
 do
     if [[ "$line" =~ ^\> ]]; then
-        # Remove '>' and potential carriage returns, and replace '/' with '_'
-        primer_id=$(echo "$line" | tr -d '>' | tr -d '\r' | tr '/' '_')
+        # Remove '>' and potential carriage returns, and split primer ID and genotype
+        line=$(echo "$line" | tr -d '>' | tr -d '\r')
+        primer_id=$(echo "$line" | cut -d '|' -f 1 | tr '/' '_')  # Replace '/' with '_'
+        genotype=$(echo "$line" | cut -d '|' -f 2)
         primer_sequence=""
     else
         primer_sequence="$line"
         
+        # Ensure the temporary directory exists (redundant but for safety)
+        mkdir -p "$temp_dir"
+
         # Align each primer to each reference genome
         for ref_file in "$reference_path"/*.fna; do
             ref_name=$(basename "$ref_file" .fna)
@@ -48,7 +55,7 @@ do
             fi
             
             # Create temporary FASTA file for primer
-            primer_fasta="$output_dir/temp_primer_${primer_id}.fasta"
+            primer_fasta="$temp_dir/temp_primer_${primer_id}.fasta"
             echo -e ">$primer_id\n$primer_sequence" > "$primer_fasta" || { echo "Failed to create FASTA for $primer_id"; exit 1; }
 
             # Perform BWA alignment and log any errors
@@ -68,7 +75,7 @@ do
             fi
 
             # Extract alignment positions and append to the TSV file, omitting if start position is 0
-            alignment_info=$(grep -v "^@" "$sam_file" | awk -v ref="$ref_name" -v primer="$primer_id" '$4 > 0 {print primer "\t" ref "\t" $4 "\t" $4 + length($10) - 1}')
+            alignment_info=$(grep -v "^@" "$sam_file" | awk -v ref="$ref_name" -v primer="$primer_id" -v geno="$genotype" '$4 > 0 {print primer "\t" geno "\t" ref "\t" $4 "\t" $4 + length($10) - 1}')
             
             # Check if alignment_info is not empty before appending to the TSV
             if [ -n "$alignment_info" ]; then
