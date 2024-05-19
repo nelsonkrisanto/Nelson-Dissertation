@@ -41,22 +41,22 @@ def generate_primer_combinations(input_file, regions_of_interest):
         logging.info("Searching for valid primer combinations")
         for _, fwd in tqdm(fwd_primers.iterrows(), total=fwd_primers.shape[0], desc="Processing Primers"):
             # Skip forward primers without a genotype
-            if pd.isna(fwd['Genotype']):
+            if pd.isna(fwd['Genotype_x']):
                 logging.debug(f"Skipping forward primer {fwd['Primer']} due to missing genotype")
                 continue
 
             # Find matching reverse primers based on specific criteria
             matching_revs = rev_primers[((rev_primers['Reference'] == fwd['Reference']) & 
-                                         ((rev_primers['Genotype'] == fwd['Genotype']) | 
-                                          (rev_primers['Genotype'] == 'ALL'))) &
+                                         ((rev_primers['Genotype_x'] == fwd['Genotype_x']) | 
+                                          (rev_primers['Genotype_x'] == 'ALL'))) &
                                         (rev_primers['Start'] > fwd['Start'] + 300) & 
                                         (rev_primers['Start'] < fwd['Start'] + 1050)]  # Increased distance to account for the 50bp difference
             
-            logging.debug(f"Forward Primer: {fwd['Primer']} | Genotype: {fwd['Genotype']} | Matching Reverse Primers: {matching_revs['Primer'].tolist()}")
+            logging.debug(f"Forward Primer: {fwd['Primer']} | Genotype: {fwd['Genotype_x']} | Matching Reverse Primers: {matching_revs['Primer'].tolist()}")
 
             # Log if no matching reverse primers are found
             if matching_revs.empty:
-                logging.debug(f"No reverse primers found for forward primer: {fwd['Primer']} with genotype: {fwd['Genotype']} and reference: {fwd['Reference']}")
+                logging.debug(f"No reverse primers found for forward primer: {fwd['Primer']} with genotype: {fwd['Genotype_x']} and reference: {fwd['Reference']}")
             
             # Evaluate each matching reverse primer
             for _, rev in matching_revs.iterrows():
@@ -77,7 +77,7 @@ def generate_primer_combinations(input_file, regions_of_interest):
                                 'Reverse_Primer': rev['Primer'],
                                 'Combination_Name': combination_name,
                                 'Reference': fwd['Reference'],
-                                'Genotype': fwd['Genotype'],
+                                'Genotype': fwd['Genotype_x'],
                                 'Region': region,
                                 'Amplicon_Length': amplicon_length
                             })

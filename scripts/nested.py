@@ -61,6 +61,9 @@ def generate_nested_primer_combinations(mapping_file, metadata_file, outer_min_l
         logging.info(f"Merged dataframes successfully. Total primers: {len(merged_df)}")
         logging.debug(f"Merged DataFrame Head:\n{merged_df.head()}")
 
+        # Rename columns to avoid issues with suffixes
+        merged_df.rename(columns={'Genotype_x': 'Genotype'}, inplace=True)
+
         fwd_primers, rev_primers = prefilter_data(merged_df)
 
         min_primer_distance = 50  # Minimum distance between primer start positions for both rounds

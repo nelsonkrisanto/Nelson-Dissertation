@@ -50,9 +50,9 @@ def calculate_tm_avg(sequence, tm_type):
 df['Tm_min'] = df['Sequence'].apply(lambda x: calculate_tm_avg(x, 'min'))
 df['Tm_max'] = df['Sequence'].apply(lambda x: calculate_tm_avg(x, 'max'))
 
-# Save the updated DataFrame to a CSV file
-output_file = 'primer_metadata.csv'  # Change the file extension to .csv
+# Save the updated DataFrame to a TSV file
+output_file = 'primer_metadata.tsv'  # Change the file extension to .tsv
 output_file_path = file_path
-df.to_csv(output_file_path + output_file, index=False)
+df.to_csv(output_file_path + output_file, sep='\t', index=False)
 
-print(f"Updated CSV file saved as '{output_file_path + output_file}'")
+print(f"Updated TSV file saved as '{output_file_path + output_file}'")
