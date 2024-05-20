@@ -2,27 +2,11 @@ import pandas as pd
 import sys
 from tqdm import tqdm
 import logging
-from itertools import groupby
 
 # Function to set up logging configuration
 def setup_logging():
     # Configure logging to display the time, log level, and message
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
-def calculate_gc_content(sequence):
-    return round((sequence.count('G') + sequence.count('C')) / len(sequence) * 100, 2)
-
-def check_primer_conditions(primer):
-    length = len(primer['Sequence'])
-    gc_content = calculate_gc_content(primer['Sequence'])
-    homopolymer_run = max([len(list(g)) for k, g in groupby(primer['Sequence'])])
-    if length < 18 or length > 25:
-        return False
-    if gc_content < 40 or gc_content > 60:
-        return False
-    if homopolymer_run > 4:
-        return False
-    return True
 
 # Function to generate primer combinations
 def generate_primer_combinations(input_file, regions_of_interest):
@@ -39,8 +23,6 @@ def generate_primer_combinations(input_file, regions_of_interest):
         df_metadata = pd.read_csv('primer_metadata.tsv', delimiter='\t')
         # Clean and standardize the 'Primer' column by stripping whitespace and converting to uppercase
         df_metadata['Primer'] = df_metadata['Primer'].str.strip().str.upper()
-        # Calculate GC content for primers
-        df_metadata['GC_Content'] = df_metadata['Sequence'].apply(calculate_gc_content)
         logging.debug(f"Metadata DataFrame Head:\n{df_metadata.head()}")
 
         # Merge the mapping and metadata dataframes based on the 'Primer' column
@@ -58,39 +40,35 @@ def generate_primer_combinations(input_file, regions_of_interest):
         # Start searching for valid primer combinations
         logging.info("Searching for valid primer combinations")
         for _, fwd in tqdm(fwd_primers.iterrows(), total=fwd_primers.shape[0], desc="Processing Primers"):
-            # Skip forward primers without a genotype or failing conditions
-            if pd.isna(fwd['Genotype_x']) or not check_primer_conditions(fwd):
-                logging.debug(f"Skipping forward primer {fwd['Primer']} due to missing genotype or failing conditions")
+            # Skip forward primers without a genotype
+            if pd.isna(fwd['Genotype_x']):
+                logging.debug(f"Skipping forward primer {fwd['Primer']} due to missing genotype")
                 continue
 
             # Find matching reverse primers based on specific criteria
-            matching_revs = rev_primers[(rev_primers['Reference'] == fwd['Reference']) & 
-                                        ((rev_primers['Genotype_x'] == fwd['Genotype_x']) | 
-                                         (rev_primers['Genotype_x'] == 'ALL')) &
+            matching_revs = rev_primers[((rev_primers['Reference'] == fwd['Reference']) & 
+                                         ((rev_primers['Genotype_x'] == fwd['Genotype_x']) | 
+                                          (rev_primers['Genotype_x'] == 'ALL'))) &
                                         (rev_primers['Start'] > fwd['Start'] + 300) & 
-                                        (rev_primers['Start'] < fwd['Start'] + 1050)]
-            matching_revs['Amplicon_Length'] = matching_revs['Start'] - fwd['Start']
-
+                                        (rev_primers['Start'] < fwd['Start'] + 1050)]  # Increased distance to account for the 50bp difference
+            
             logging.debug(f"Forward Primer: {fwd['Primer']} | Genotype: {fwd['Genotype_x']} | Matching Reverse Primers: {matching_revs['Primer'].tolist()}")
 
             # Log if no matching reverse primers are found
             if matching_revs.empty:
                 logging.debug(f"No reverse primers found for forward primer: {fwd['Primer']} with genotype: {fwd['Genotype_x']} and reference: {fwd['Reference']}")
-
+            
             # Evaluate each matching reverse primer
             for _, rev in matching_revs.iterrows():
-                if not check_primer_conditions(rev):
-                    continue
-
                 combination_name = f"{fwd['Primer']}_{rev['Primer']}"
+                amplicon_length = rev['Start'] - fwd['Start']
                 tm_max_diff = abs(fwd['Tm_max'] - rev['Tm_max'])
                 tm_min_diff = abs(fwd['Tm_min'] - rev['Tm_min'])
-                gc_content_diff = abs(fwd['GC_Content'] - rev['GC_Content'])
 
-                logging.debug(f"Evaluating combination: {combination_name} | Amplicon Length: {rev['Amplicon_Length']}, Tm Max Diff: {tm_max_diff}, Tm Min Diff: {tm_min_diff}, GC Content Diff: {gc_content_diff}")
+                logging.debug(f"Evaluating combination: {combination_name} | Amplicon Length: {amplicon_length}, Tm Max Diff: {tm_max_diff}, Tm Min Diff: {tm_min_diff}")
 
                 # Check if the combination meets the Tm and region criteria
-                if (fwd['Tm_min'] >= rev['Tm_min']) and (fwd['Tm_max'] <= rev['Tm_max']) and (tm_max_diff <= 3) and (tm_min_diff <= 3) and (gc_content_diff <= 10):
+                if (fwd['Tm_min'] >= rev['Tm_min']) and (fwd['Tm_max'] <= rev['Tm_max']) and (tm_max_diff <= 5) and (tm_min_diff <= 5):
                     for region, (start, end) in regions_of_interest.items():
                         if fwd['Start'] >= start and rev['End'] <= end:
                             logging.debug(f"Valid combination found: {combination_name} in region {region}")
@@ -101,7 +79,7 @@ def generate_primer_combinations(input_file, regions_of_interest):
                                 'Reference': fwd['Reference'],
                                 'Genotype': fwd['Genotype_x'],
                                 'Region': region,
-                                'Amplicon_Length': rev['Amplicon_Length']
+                                'Amplicon_Length': amplicon_length
                             })
                         else:
                             logging.debug(f"Region mismatch for {combination_name}: Fwd Start {fwd['Start']} | Rev End {rev['End']} | Region {region} ({start}-{end})")

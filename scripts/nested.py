@@ -39,7 +39,7 @@ def find_combinations(fwd_primers, rev_primers, min_length, max_length, min_prim
             fwd_homopolymer = max([len(list(g)) for k, g in groupby(fwd['Sequence'])])
             rev_homopolymer = max([len(list(g)) for k, g in groupby(rev['Sequence'])])
 
-            if (fwd['Tm_min'] >= rev['Tm_min']) and (fwd['Tm_max'] <= rev['Tm_max']) and (tm_max_diff <= 5) and (tm_min_diff <= 5) and (gc_content_diff <= 10) and (fwd_homopolymer <= 4) and (rev_homopolymer <= 4):
+            if (fwd['Tm_min'] >= rev['Tm_min']) and (fwd['Tm_max'] <= rev['Tm_max']) and (tm_max_diff <= 3) and (tm_min_diff <= 3) and (gc_content_diff <= 10) and (fwd_homopolymer <= 4) and (rev_homopolymer <= 4):
                 for region, (start, end) in regions_of_interest.items():
                     if fwd['Start'] >= start and rev['End'] <= end:
                         combinations.append({
