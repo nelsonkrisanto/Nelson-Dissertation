@@ -1,4 +1,5 @@
-# Title
+# Comparison of Bioinformatic Approaches for Minimizing Sequence Redundancy in Amplicon Sequencing Data from Oxford Nanopore Technology Platforms Applied to Dengue Virus Research
+
 ## High-Level Guide to Using the Scripts
 
 ### Configuration: `00.config.sh`
