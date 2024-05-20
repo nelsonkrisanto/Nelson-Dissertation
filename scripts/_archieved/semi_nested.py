@@ -1,110 +1,155 @@
 import pandas as pd
 from tqdm import tqdm
 import sys
+import logging
+
+def setup_logging():
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def prefilter_data(merged_df):
-    """
-    Separates the merged DataFrame into two DataFrames containing forward and reverse primers
-    """
-    # Filters out forward primers and creates a copy to avoid SettingWithCopyWarning.
     fwd_primers = merged_df[merged_df['Primer'].str.endswith('_F')].copy()
-    # Filters out reverse primers and creates a copy.
     rev_primers = merged_df[merged_df['Primer'].str.endswith('_R')].copy()
     return fwd_primers, rev_primers
 
-def find_semi_nested_combinations(fwd_primers, rev_primers, is_forward_reused, min_length, max_length):
-    """
-    Identifies valid primer combinations for semi-nested PCR, distinguishing between scenarios
-    where a forward primer is reused (and a new reverse primer is used) and vice versa.
-    """
-    # Determines which set of primers are reused and which are new based on whether a forward primer is being reused.
-    reused_primers, new_primers = (fwd_primers, rev_primers) if is_forward_reused else (rev_primers, fwd_primers)
+def find_combinations(fwd_primers, rev_primers, min_length, max_length, min_primer_distance, regions_of_interest, round_type='first'):
+    combinations = []
+    for _, fwd in tqdm(fwd_primers.iterrows(), total=fwd_primers.shape[0], desc=f"Processing {round_type.capitalize()} Round Forward Primers"):
+        if pd.isna(fwd['Genotype']):
+            logging.debug(f"Skipping forward primer {fwd['Primer']} due to missing genotype")
+            continue
 
-    combinations = []  # Initializes a list to store valid primer combinations.
-    # Iterates over reused primers with progress tracking.
-    for _, reused_primer in tqdm(reused_primers.iterrows(), total=reused_primers.shape[0], desc="Processing Reused Primers"):
-        # Filters new primers by matching references with the reused primer.
-        matching_new_primers = new_primers[new_primers['Reference'] == reused_primer['Reference']]
+        matching_revs = rev_primers[(rev_primers['Reference'] == fwd['Reference']) & 
+                                    ((rev_primers['Genotype'] == fwd['Genotype']) | 
+                                     (rev_primers['Genotype'] == 'ALL')) &
+                                    (rev_primers['Start'] > fwd['Start'] + min_primer_distance)]
+        matching_revs['Amplicon_Length'] = matching_revs['Start'] - fwd['Start']
         
-        # Iterates over matching new primers to check for valid combinations.
-        for _, new_primer in matching_new_primers.iterrows():
-            # Calculates the amplicon length for potential semi-nested PCR combinations.
-            amplicon_length = abs(new_primer['Start'] - reused_primer['Start'])
-            # Checks if the amplicon length falls within the specified range.
-            if min_length <= amplicon_length <= max_length:
-                # If valid, adds the combination to the list with relevant details.
-                combinations.append({
-                    'Reused_Primer': reused_primer['Primer'],
-                    'New_Primer': new_primer['Primer'],
-                    'Combination_Name': f"{reused_primer['Primer']}_{new_primer['Primer']}",
-                    'Reference': reused_primer['Reference'],
-                    'Amplicon_Length': amplicon_length
+        valid_revs = matching_revs[(matching_revs['Amplicon_Length'] >= min_length) & 
+                                   (matching_revs['Amplicon_Length'] <= max_length)]
+        
+        for _, rev in valid_revs.iterrows():
+            combination_name = f"{fwd['Primer']}_{rev['Primer']}"
+            tm_max_diff = abs(fwd['Tm_max'] - rev['Tm_max'])
+            tm_min_diff = abs(fwd['Tm_min'] - rev['Tm_min'])
+            
+            if (fwd['Tm_min'] >= rev['Tm_min']) and (fwd['Tm_max'] <= rev['Tm_max']) and (tm_max_diff <= 5) and (tm_min_diff <= 5):
+                for region, (start, end) in regions_of_interest.items():
+                    if fwd['Start'] >= start and rev['End'] <= end:
+                        combinations.append({
+                            'Forward_Primer': fwd['Primer'],
+                            'Reverse_Primer': rev['Primer'],
+                            'Combination_Name': combination_name,
+                            'Reference': fwd['Reference'],
+                            'Genotype': fwd['Genotype'],
+                            'Amplicon_Length': rev['Amplicon_Length'],
+                            'Round_Type': round_type,
+                            'Region': region,
+                            'First_Round_Start': fwd['Start'],
+                            'First_Round_End': rev['End']
+                        })
+                        break
+    return pd.DataFrame(combinations)
+
+def match_inner_to_outer(outer_combos, inner_combos):
+    matched_combinations = []
+    for _, outer in outer_combos.iterrows():
+        for _, inner in inner_combos.iterrows():
+            if (inner['Reference'] == outer['Reference'] and 
+                inner['Region'] == outer['Region'] and 
+                inner['Genotype'] == outer['Genotype'] and 
+                inner['First_Round_Start'] >= outer['First_Round_Start'] and 
+                inner['First_Round_End'] <= outer['First_Round_End']):
+                matched_combinations.append({
+                    'Outer_Combination_Name': outer['Combination_Name'],
+                    'Outer_Forward_Primer': outer['Forward_Primer'],
+                    'Outer_Reverse_Primer': outer['Reverse_Primer'],
+                    'Outer_Genotype': outer['Genotype'],
+                    'Outer_Amplicon_Length': outer['Amplicon_Length'],
+                    'Inner_Combination_Name': inner['Combination_Name'],
+                    'Inner_Forward_Primer': inner['Forward_Primer'],
+                    'Inner_Reverse_Primer': inner['Reverse_Primer'],
+                    'Inner_Genotype': inner['Genotype'],
+                    'Inner_Amplicon_Length': inner['Amplicon_Length'],
+                    'Reference': outer['Reference'],
+                    'Region': outer['Region']
                 })
-    
-    return combinations  # Returns the list of valid primer combinations.
+    return pd.DataFrame(matched_combinations)
 
-def generate_semi_nested_primer_combinations(mapping_positions_path, primer_metadata_path):
-    """
-    Main function that generate the semi-nested PCR primer combinations.
-    It processes both forward and reverse primers to find suitable pairs for semi-nested PCR.
-    """
+def generate_semi_nested_primer_combinations(mapping_file, metadata_file, outer_min_len, inner_max_len, regions_of_interest):
     try:
-        # Loads mapping positions and primer metadata into DataFrames.
-        df_mapping = pd.read_csv(mapping_positions_path, sep='\t')
-        df_metadata = pd.read_csv(primer_metadata_path, sep='\t')
+        logging.info(f"Loading mapping data from {mapping_file}")
+        df_mapping = pd.read_csv(mapping_file, delimiter='\t')
+        df_mapping['Primer'] = df_mapping['Primer'].str.strip().str.upper()
+        logging.debug(f"Mapping DataFrame Head:\n{df_mapping.head()}")
 
-        # Merges the mapping and metadata DataFrames on the 'Primer' column.
+        logging.info(f"Loading primer metadata from {metadata_file}")
+        df_metadata = pd.read_csv(metadata_file, delimiter='\t')
+        df_metadata['Primer'] = df_metadata['Primer'].str.strip().str.upper()
+        logging.debug(f"Metadata DataFrame Head:\n{df_metadata.head()}")
+
+        logging.info("Merging dataframes based on 'Primer' column")
         merged_df = pd.merge(df_mapping, df_metadata, on='Primer', how='inner')
-        # Pre-filters the merged DataFrame to separate forward and reverse primers.
+        logging.info(f"Merged dataframes successfully. Total primers: {len(merged_df)}")
+        logging.debug(f"Merged DataFrame Head:\n{merged_df.head()}")
+
+        # Rename columns to avoid issues with suffixes
+        merged_df.rename(columns={'Genotype_x': 'Genotype'}, inplace=True)
+
         fwd_primers, rev_primers = prefilter_data(merged_df)
 
-        # Finds valid semi-nested combinations where forward primers are reused.
-        forward_combinations = find_semi_nested_combinations(fwd_primers, rev_primers, True, 100, 500)
-        print(f"Found {len(forward_combinations)} valid semi-nested combinations with forward primers reused.")
+        min_primer_distance = 50  # Minimum distance between primer start positions for both rounds
 
-        # Finds valid semi-nested combinations where reverse primers are reused.
-        reverse_combinations = find_semi_nested_combinations(fwd_primers, rev_primers, False, 100, 500)
-        print(f"Found {len(reverse_combinations)} valid semi-nested combinations with reverse primers reused.")
+        logging.info("Finding valid primer combinations for the first round")
+        first_round_combinations = find_combinations(fwd_primers, rev_primers, outer_min_len, float('inf'), min_primer_distance, regions_of_interest)
 
-        # Processes the valid combinations for forward reused primers, if any.
-        if forward_combinations:
-            forward_df = pd.DataFrame(forward_combinations)
-            forward_df.drop_duplicates(subset=['Combination_Name', 'Amplicon_Length', 'Reference'], inplace=True)
-            forward_file = 'semi_nested_combinations_forward.tsv'
-            forward_df.to_csv(forward_file, sep='\t', index=False)
-            print(f"Semi-nested primer combinations with forward primers reused saved to {forward_file}")
+        logging.info("Finding valid primer combinations for the second round")
+        second_round_combinations = pd.DataFrame()
+        for combo in first_round_combinations.itertuples(index=False):
+            specific_fwd = fwd_primers[fwd_primers['Primer'] == combo.Forward_Primer].copy()
+            specific_rev = rev_primers[rev_primers['Primer'] == combo.Reverse_Primer].copy()
+            
+            # Find new forward or reverse primer for semi-nested PCR
+            new_fwd_combinations = find_combinations(specific_fwd, rev_primers, 0, inner_max_len, 0, regions_of_interest, 'second')
+            new_rev_combinations = find_combinations(fwd_primers, specific_rev, 0, inner_max_len, 0, regions_of_interest, 'second')
+            
+            second_round_combinations = pd.concat([second_round_combinations, new_fwd_combinations, new_rev_combinations], ignore_index=True)
 
-        # Processes the valid combinations for reverse reused primers, if any.
-        if reverse_combinations:
-            reverse_df = pd.DataFrame(reverse_combinations)
-            reverse_df.drop_duplicates(subset=['Combination_Name', 'Amplicon_Length', 'Reference'], inplace=True)
-            reverse_file = 'semi_nested_combinations_reverse.tsv'
-            reverse_df.to_csv(reverse_file, sep='\t', index=False)
-            print(f"Semi-nested primer combinations with reverse primers reused saved to {reverse_file}")
+        all_combinations = pd.concat([first_round_combinations, second_round_combinations], ignore_index=True)
+        if not all_combinations.empty:
+            all_combinations.drop_duplicates(subset=['Combination_Name', 'Amplicon_Length', 'Reference'], inplace=True)
+            
+            all_combinations_file = 'all_semi_nested_primer_combinations.tsv'
+            all_combinations.to_csv(all_combinations_file, sep='\t', index=False)
+            logging.info(f"All semi-nested primer combinations saved to {all_combinations_file}")
+            
+            top_200_combinations_file = 'top_200_semi_nested_primer_combinations.tsv'
+            top_200_combinations_df = all_combinations.head(200)
+            top_200_combinations_df.to_csv(top_200_combinations_file, sep='\t', index=False)
+            logging.info(f"Top 200 semi-nested primer combinations saved to {top_200_combinations_file}")
 
-        # If no valid combinations are found for either case, prints a message.
-        if not forward_combinations and not reverse_combinations:
-            print("No valid semi-nested primer combinations found.")
+            # Match inner combinations to outer combinations
+            logging.info("Matching inner combinations to outer combinations")
+            matched_combinations = match_inner_to_outer(first_round_combinations, second_round_combinations)
+            matched_combinations_file = 'matched_semi_nested_primer_combinations.tsv'
+            matched_combinations.to_csv(matched_combinations_file, sep='\t', index=False)
+            logging.info(f"Matched semi-nested primer combinations saved to {matched_combinations_file}")
 
-    # Handles various exceptions that may arise during execution.
-    except FileNotFoundError as e:
-        print(f"File not found: {e}")
-        sys.exit(1)
-    except pd.errors.EmptyDataError as e:
-        print(f"No data: {e}")
-        sys.exit(1)
+        else:
+            logging.info("No valid semi-nested primer combinations found.")
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        logging.error(f"An error occurred: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
-    # Checks for the correct number of command-line arguments.
-    if len(sys.argv) != 3:
-        print("Usage: python script.py mapping_positions.tsv primer_metadata.tsv")
+    if len(sys.argv) != 5:
+        print("Usage: python script.py mapping_positions.tsv primer_metadata.tsv outer_min_len inner_max_len")
         sys.exit(1)
     else:
-        # Assigns file paths based on command-line arguments.
-        mapping_positions_path = sys.argv[1]
-        primer_metadata_path = sys.argv[2]
-        # Calls the main function to generate semi-nested PCR primer combinations.
-        generate_semi_nested_primer_combinations(mapping_positions_path, primer_metadata_path)
+        setup_logging()
+        mapping_file, metadata_file, outer_min_len, inner_max_len = sys.argv[1:5]
+        regions_of_interest = {
+            'NS1': (1000, 2000),
+            'NS3': (3000, 4000),
+            'NS5': (5000, 7000)
+        }
+        generate_semi_nested_primer_combinations(mapping_file, metadata_file, int(outer_min_len), int(inner_max_len), regions_of_interest)
