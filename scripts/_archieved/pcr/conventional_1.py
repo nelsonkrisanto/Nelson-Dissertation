@@ -4,7 +4,9 @@ from tqdm import tqdm
 import logging
 from itertools import groupby
 
+# Function to set up logging configuration
 def setup_logging():
+    # Configure logging to display the time, log level, and message
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def calculate_gc_content(sequence):
@@ -28,13 +30,16 @@ def generate_primer_combinations(input_file, regions_of_interest):
         # Load the mapping data from the provided TSV file
         logging.info(f"Loading mapping data from {input_file}")
         df_mapping = pd.read_csv(input_file, delimiter='\t')
+        # Clean and standardize the 'Primer' column by stripping whitespace and converting to uppercase
         df_mapping['Primer'] = df_mapping['Primer'].str.strip().str.upper()
         logging.debug(f"Mapping DataFrame Head:\n{df_mapping.head()}")
 
         # Load the primer metadata from 'primer_metadata.tsv'
         logging.info("Loading primer metadata from primer_metadata.tsv")
         df_metadata = pd.read_csv('primer_metadata.tsv', delimiter='\t')
+        # Clean and standardize the 'Primer' column by stripping whitespace and converting to uppercase
         df_metadata['Primer'] = df_metadata['Primer'].str.strip().str.upper()
+        # Calculate GC content for primers
         df_metadata['GC_Content'] = df_metadata['Sequence'].apply(calculate_gc_content)
         logging.debug(f"Metadata DataFrame Head:\n{df_metadata.head()}")
 
@@ -56,10 +61,12 @@ def generate_primer_combinations(input_file, regions_of_interest):
         # Start searching for valid primer combinations
         logging.info("Searching for valid primer combinations")
         for _, fwd in tqdm(fwd_primers.iterrows(), total=fwd_primers.shape[0], desc="Processing Primers"):
+            # Skip forward primers without a genotype or failing conditions
             if pd.isna(fwd['Genotype']) or not check_primer_conditions(fwd):
                 logging.debug(f"Skipping forward primer {fwd['Primer']} due to missing genotype or failing conditions")
                 continue
 
+            # Find matching reverse primers based on specific criteria
             matching_revs = rev_primers[(rev_primers['Reference'] == fwd['Reference']) & 
                                         ((rev_primers['Genotype'] == fwd['Genotype']) | 
                                          (rev_primers['Genotype'] == 'ALL')) &
@@ -69,9 +76,11 @@ def generate_primer_combinations(input_file, regions_of_interest):
 
             logging.debug(f"Forward Primer: {fwd['Primer']} | Genotype: {fwd['Genotype']} | Matching Reverse Primers: {matching_revs['Primer'].tolist()}")
 
+            # Log if no matching reverse primers are found
             if matching_revs.empty:
                 logging.debug(f"No reverse primers found for forward primer: {fwd['Primer']} with genotype: {fwd['Genotype']} and reference: {fwd['Reference']}")
 
+            # Evaluate each matching reverse primer
             for _, rev in matching_revs.iterrows():
                 if not check_primer_conditions(rev):
                     continue
@@ -83,6 +92,7 @@ def generate_primer_combinations(input_file, regions_of_interest):
 
                 logging.debug(f"Evaluating combination: {combination_name} | Amplicon Length: {rev['Amplicon_Length']}, Tm Max Diff: {tm_max_diff}, Tm Min Diff: {tm_min_diff}, GC Content Diff: {gc_content_diff}")
 
+                # Check if the combination meets the Tm and region criteria
                 if (fwd['Tm_min'] >= rev['Tm_min']) and (fwd['Tm_max'] <= rev['Tm_max']) and (tm_max_diff <= 3) and (tm_min_diff <= 3) and (gc_content_diff <= 10):
                     for region, (start, end) in regions_of_interest.items():
                         if fwd['Start'] >= start and rev['End'] <= end:
@@ -92,6 +102,8 @@ def generate_primer_combinations(input_file, regions_of_interest):
                                 'Reverse_Primer': rev['Sequence'],
                                 'Combination_Name': combination_name.replace(' ', '_'),
                             })
+                        else:
+                            logging.debug(f"Region mismatch for {combination_name}: Fwd Start {fwd['Start']} | Rev End {rev['End']} | Region {region} ({start}-{end})")
 
         # Save the valid primer combinations if any are found
         if primer_combinations:
@@ -118,15 +130,20 @@ def generate_primer_combinations(input_file, regions_of_interest):
 
 # Main entry point of the script
 if __name__ == "__main__":
+    # Check if the script is called with the correct number of arguments
     if len(sys.argv) != 2:
         print("Usage: python combine.py mapping_positions.tsv")
         sys.exit(1)
     else:
+        # Set up logging
         setup_logging()
+        # Get the input file path from the command line arguments
         input_file = sys.argv[1]
+        # Define the regions of interest
         regions_of_interest = {
             'NS1': (1000, 2000),
             'NS3': (3000, 4000),
             'NS5': (5000, 7000)
         }
+        # Generate primer combinations
         generate_primer_combinations(input_file, regions_of_interest)

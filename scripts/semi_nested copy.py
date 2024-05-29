@@ -20,6 +20,7 @@ def check_primer_conditions(primer):
         return False
     if 'AAAA' in primer['Sequence'] or 'TTTT' in primer['Sequence'] or 'GGGG' in primer['Sequence'] or 'CCCC' in primer['Sequence']:
         return False
+    # Add more checks for secondary structures, self-complementarity, etc.
     return True
 
 def find_combinations(fwd_primers, rev_primers, min_length, max_length, min_primer_distance, regions_of_interest, round_type='first'):
@@ -46,20 +47,48 @@ def find_combinations(fwd_primers, rev_primers, min_length, max_length, min_prim
             tm_max_diff = abs(fwd['Tm_max'] - rev['Tm_max'])
             tm_min_diff = abs(fwd['Tm_min'] - rev['Tm_min'])
             
-            if (fwd['Tm_min'] >= rev['Tm_min']) and (fwd['Tm_max'] <= rev['Tm_max']) and (tm_max_diff <= 3) and (tm_min_diff <= 3):
+            if (fwd['Tm_min'] >= rev['Tm_min']) and (fwd['Tm_max'] <= rev['Tm_max']) and (tm_max_diff <= 3) and (tm_min_diff <= 3):  # Stricter Tm difference
                 for region, (start, end) in regions_of_interest.items():
                     if fwd['Start'] >= start and rev['End'] <= end:
                         combinations.append({
-                            'Forward_Primer': fwd['Sequence'],
-                            'Reverse_Primer': rev['Sequence'],
-                            'Combination_Name': combination_name.replace(' ', '_'),
+                            'Forward_Primer': fwd['Primer'],
+                            'Reverse_Primer': rev['Primer'],
+                            'Combination_Name': combination_name,
+                            'Reference': fwd['Reference'],
+                            'Genotype': fwd['Genotype'],
+                            'Amplicon_Length': rev['Amplicon_Length'],
                             'Round_Type': round_type,
+                            'Region': region,
                             'First_Round_Start': fwd['Start'],
-                            'First_Round_End': rev['End'],
-                            'Reference': fwd['Reference']
+                            'First_Round_End': rev['End']
                         })
                         break
     return pd.DataFrame(combinations)
+
+def match_inner_to_outer(outer_combos, inner_combos):
+    matched_combinations = []
+    for _, outer in outer_combos.iterrows():
+        for _, inner in inner_combos.iterrows():
+            if (inner['Reference'] == outer['Reference'] and 
+                inner['Region'] == outer['Region'] and 
+                inner['Genotype'] == outer['Genotype'] and 
+                inner['First_Round_Start'] >= outer['First_Round_Start'] and 
+                inner['First_Round_End'] <= outer['First_Round_End']):
+                matched_combinations.append({
+                    'Outer_Combination_Name': outer['Combination_Name'],
+                    'Outer_Forward_Primer': outer['Forward_Primer'],
+                    'Outer_Reverse_Primer': outer['Reverse_Primer'],
+                    'Outer_Genotype': outer['Genotype'],
+                    'Outer_Amplicon_Length': outer['Amplicon_Length'],
+                    'Inner_Combination_Name': inner['Combination_Name'],
+                    'Inner_Forward_Primer': inner['Forward_Primer'],
+                    'Inner_Reverse_Primer': inner['Reverse_Primer'],
+                    'Inner_Genotype': inner['Genotype'],
+                    'Inner_Amplicon_Length': inner['Amplicon_Length'],
+                    'Reference': outer['Reference'],
+                    'Region': outer['Region']
+                })
+    return pd.DataFrame(matched_combinations)
 
 def generate_semi_nested_primer_combinations(mapping_file, metadata_file, outer_min_len, inner_max_len, regions_of_interest):
     try:
@@ -71,7 +100,6 @@ def generate_semi_nested_primer_combinations(mapping_file, metadata_file, outer_
         logging.info(f"Loading primer metadata from {metadata_file}")
         df_metadata = pd.read_csv(metadata_file, delimiter='\t')
         df_metadata['Primer'] = df_metadata['Primer'].str.strip().str.upper()
-        df_metadata['GC_Content'] = df_metadata['Sequence'].apply(lambda seq: (seq.count('G') + seq.count('C')) / len(seq) * 100)
         logging.debug(f"Metadata DataFrame Head:\n{df_metadata.head()}")
 
         logging.info("Merging dataframes based on 'Primer' column")
@@ -92,11 +120,8 @@ def generate_semi_nested_primer_combinations(mapping_file, metadata_file, outer_
         logging.info("Finding valid primer combinations for the second round")
         second_round_combinations = pd.DataFrame()
         for combo in first_round_combinations.itertuples(index=False):
-            specific_fwd = fwd_primers[(fwd_primers['Reference'] == combo.Reference) & (fwd_primers['Start'] > combo.First_Round_Start) & (fwd_primers['Start'] < combo.First_Round_End)].copy()
-            specific_rev = rev_primers[(rev_primers['Reference'] == combo.Reference) & (rev_primers['End'] < combo.First_Round_End) & (rev_primers['End'] > combo.First_Round_Start)].copy()
-            if specific_fwd.empty or specific_rev.empty:
-                logging.debug(f"No matching forward or reverse primers for second round: {combo.Forward_Primer}, {combo.Reverse_Primer}")
-                continue
+            specific_fwd = fwd_primers[fwd_primers['Primer'] == combo.Forward_Primer].copy()
+            specific_rev = rev_primers[rev_primers['Primer'] == combo.Reverse_Primer].copy()
             
             # Find new forward or reverse primer for semi-nested PCR
             new_fwd_combinations = find_combinations(specific_fwd, rev_primers, 0, inner_max_len, 0, regions_of_interest, 'second')
@@ -104,29 +129,32 @@ def generate_semi_nested_primer_combinations(mapping_file, metadata_file, outer_
             
             second_round_combinations = pd.concat([second_round_combinations, new_fwd_combinations, new_rev_combinations], ignore_index=True)
 
-        if not first_round_combinations.empty:
-            first_round_combinations.drop_duplicates(subset=['Combination_Name'], inplace=True)
-            outer_combinations_file = 'semi_nested_outer_primer_combinations.tsv'
-            with open(outer_combinations_file, 'w') as f:
-                for i, row in first_round_combinations.iterrows():
-                    f.write(f"{row['Forward_Primer']}\t{row['Reverse_Primer']}\t{row['Combination_Name']}\n")
-            logging.info(f"Formatted outer primer combinations saved to {outer_combinations_file}")
+        all_combinations = pd.concat([first_round_combinations, second_round_combinations], ignore_index=True)
+        if not all_combinations.empty:
+            all_combinations.drop_duplicates(subset=['Combination_Name', 'Amplicon_Length', 'Reference'], inplace=True)
+            
+            all_combinations_file = 'all_semi_nested_primer_combinations_strict.tsv'
+            all_combinations.to_csv(all_combinations_file, sep='\t', index=False)
+            logging.info(f"All semi-nested primer combinations saved to {all_combinations_file}")
+            
+            top_200_combinations_file = 'top_200_semi_nested_primer_combinations_strict.tsv'
+            top_200_combinations_df = all_combinations.head(200)
+            top_200_combinations_df.to_csv(top_200_combinations_file, sep='\t', index=False)
+            logging.info(f"Top 200 semi-nested primer combinations saved to {top_200_combinations_file}")
 
-        if not second_round_combinations.empty:
-            second_round_combinations.drop_duplicates(subset=['Combination_Name'], inplace=True)
-            inner_combinations_file = 'semi_nested_inner_primer_combinations.tsv'
-            with open(inner_combinations_file, 'w') as f:
-                for i, row in second_round_combinations.iterrows():
-                    f.write(f"{row['Forward_Primer']}\t{row['Reverse_Primer']}\t{row['Combination_Name']}\n")
-            logging.info(f"Formatted inner primer combinations saved to {inner_combinations_file}")
+            # Match inner combinations to outer combinations
+            logging.info("Matching inner combinations to outer combinations")
+            matched_combinations = match_inner_to_outer(first_round_combinations, second_round_combinations)
+            matched_combinations_file = 'matched_semi_nested_primer_combinations_strict.tsv'
+            matched_combinations.to_csv(matched_combinations_file, sep='\t', index=False)
+            logging.info(f"Matched semi-nested primer combinations saved to {matched_combinations_file}")
+
         else:
-            logging.info("No valid inner primer combinations found.")
-        
+            logging.info("No valid semi-nested primer combinations found.")
     except Exception as e:
         logging.error(f"An error occurred: {e}")
         sys.exit(1)
 
-# Main entry point of the script
 if __name__ == "__main__":
     if len(sys.argv) != 5:
         print("Usage: python script.py mapping_positions.tsv primer_metadata.tsv outer_min_len inner_max_len")

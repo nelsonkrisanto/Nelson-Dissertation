@@ -20,7 +20,7 @@ cd "$tsv_dir"
 nested_pcr_script="/home/people/23203786/scratch/Nelson-Dissertation/scripts/nested.py"
 
 # Execute the nested primer combinations script with the necessary arguments
-python "$nested_pcr_script" "mapping_positions.tsv" "primer_metadata.tsv" 300 100
+python "$nested_pcr_script" "mapping_positions.tsv" "primer_metadata.tsv" 350 150
 
 # Unload Python module
 module unload python/3.9.15

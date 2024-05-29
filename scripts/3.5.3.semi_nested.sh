@@ -17,10 +17,10 @@ module load python/3.9.15
 cd "$tsv_dir"
 
 # Path to the nested primer combinations script
-nested_pcr_script="/home/people/23203786/scratch/Nelson-Dissertation/scripts/semi_nested.py"
+semi_nested_pcr_script="/home/people/23203786/scratch/Nelson-Dissertation/scripts/semi_nested.py"
 
 # Execute the nested primer combinations script with the necessary arguments
-python "$nested_pcr_script" "mapping_positions.tsv" "primer_metadata.tsv" 300 100
+python "$semi_nested_pcr_script" "mapping_positions.tsv" "primer_metadata.tsv" 350 150
 
 # Unload Python module
 module unload python/3.9.15
