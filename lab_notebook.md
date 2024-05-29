@@ -105,7 +105,7 @@ This script calculates the minimum and maximum melting temperatures (Tm) for eac
   2. Second round: Identifies valid primer pairs for the inner PCR reaction that fall within the outer amplicon.
 - **Parameters and Requirements:**
   - Minimum primer distance: 50 bases.
-  - Melting temperature difference (Tm): ≤ 5°C.
+  - Melting temperature difference (Tm): ≤ 3°C.
   - GC content difference: ≤ 10%.
   - Homopolymer runs: ≤ 4 bases.
   - Valid primer pairs must be within the specified regions of interest.
@@ -122,7 +122,7 @@ This script calculates the minimum and maximum melting temperatures (Tm) for eac
   2. Second round: Identifies valid new forward or reverse primers for the semi-nested PCR that fall within the outer amplicon.
 - **Parameters and Requirements:**
   - Minimum primer distance: 50 bases.
-  - Melting temperature difference (Tm): ≤ 3°C (stricter).
+  - Melting temperature difference (Tm): ≤ 3°C.
   - GC content difference: ≤ 10%.
   - Homopolymer runs: ≤ 4 bases.
   - Valid primer pairs must be within the specified regions of interest.
