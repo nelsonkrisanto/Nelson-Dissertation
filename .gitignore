@@ -30,3 +30,7 @@ output/
 raw_data/
 references/
 results/
+taxonomy/
+tools/
+db/
+data/

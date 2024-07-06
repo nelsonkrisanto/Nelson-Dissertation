@@ -8,7 +8,7 @@ scripts_path="$my_dir/scripts"
 logs_path="$my_dir/logs"
 scrappaper="/home/people/23203786/tools/ScrapPaper/scrappaper.py"
 entrezdirect="/home/people/23203786/tools/entrez-direct_env"
-reference_path="/home/people/23203786/scratch/Nelson-Dissertation/references
+reference_path="/home/people/23203786/scratch/Nelson-Dissertation/references"
 
 # Change working directory to the project directory
 cd "$my_dir"

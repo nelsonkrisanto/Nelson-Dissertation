@@ -64,7 +64,7 @@ def generate_primer_combinations(input_file, regions_of_interest):
                                         ((rev_primers['Genotype'] == fwd['Genotype']) | 
                                          (rev_primers['Genotype'] == 'ALL')) &
                                         (rev_primers['Start'] > fwd['Start'] + 300) & 
-                                        (rev_primers['Start'] < fwd['Start'] + 500)]
+                                        (rev_primers['Start'] < fwd['Start'] + 1000)]
             matching_revs['Amplicon_Length'] = matching_revs['Start'] - fwd['Start']
 
             logging.debug(f"Forward Primer: {fwd['Primer']} | Genotype: {fwd['Genotype']} | Matching Reverse Primers: {matching_revs['Primer'].tolist()}")
