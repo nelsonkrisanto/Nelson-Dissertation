@@ -11,7 +11,7 @@ module load perl/5.30
 
 # Define input file paths
 primers="/home/people/23203786/scratch/Nelson-Dissertation/results/tsv/conventional_primer_combinations.tsv"
-sequences="/home/people/23203786/scratch/Nelson-Dissertation/raw_data/NCBI_dengue_data/1.1.dengue_virus_sequences.fasta"
+sequences="/home/people/23203786/scratch/Nelson-Dissertation/results/fasta/combined_sequences.fasta"
 out_dir="/home/people/23203786/scratch/Nelson-Dissertation/results/insilico"
 tool="/home/people/23203786/tools/in_silico_PCR/in_silico_PCR.pl"
 filter_script="/home/people/23203786/scratch/Nelson-Dissertation/scripts/filter_amplicons.py"
@@ -26,7 +26,7 @@ cd "$out_dir" || exit
 chmod +x "$tool"
 
 # Run in-silico PCR with options to exclude primer sequences, allow 1-2 mismatches for degenerate bases, and ensure correct orientation
-perl "$tool" -s "$sequences" -p "$primers" -l 3000 -m -i -e -r > conv_insilico_PCR_results.txt 2> conv_insilico_PCR_amplicons.fasta
+perl "$tool" -s "$sequences" -p "$primers" -l 1200 -m -i -e -r > conv_insilico_PCR_results.txt 2> conv_insilico_PCR_amplicons.fasta
 
 # Unload Perl module
 module unload perl/5.30

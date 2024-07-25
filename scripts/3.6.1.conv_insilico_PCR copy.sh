@@ -5,7 +5,6 @@
 #SBATCH --error=/home/people/23203786/scratch/Nelson-Dissertation/logs/error_%x_%j.txt
 #SBATCH --output=/home/people/23203786/scratch/Nelson-Dissertation/logs/log_%x_%j.txt
 #SBATCH --cpus-per-task=10
-#SBATCH --time=48:00:00
 
 # Load the Perl module
 module load perl/5.30 
@@ -15,6 +14,7 @@ primers="/home/people/23203786/scratch/Nelson-Dissertation/results/tsv/conventio
 sequences="/home/people/23203786/scratch/Nelson-Dissertation/raw_data/NCBI_dengue_data/1.1.dengue_virus_sequences.fasta"
 out_dir="/home/people/23203786/scratch/Nelson-Dissertation/results/insilico"
 tool="/home/people/23203786/tools/in_silico_PCR/in_silico_PCR.pl"
+filter_script="/home/people/23203786/scratch/Nelson-Dissertation/scripts/filter_amplicons.py"
 
 # Create output directory if it doesn't exist
 mkdir -p "$out_dir"
@@ -28,4 +28,14 @@ chmod +x "$tool"
 # Run in-silico PCR with options to exclude primer sequences, allow 1-2 mismatches for degenerate bases, and ensure correct orientation
 perl "$tool" -s "$sequences" -p "$primers" -l 3000 -m -i -e -r > conv_insilico_PCR_results.txt 2> conv_insilico_PCR_amplicons.fasta
 
+# Unload Perl module
 module unload perl/5.30
+
+# Load Python module
+module load python/3.9.15
+
+# Run the filtering script to filter amplicons between 300-500bp
+python "$filter_script" conv_insilico_PCR_results.txt conv_insilico_PCR_amplicons.fasta filtered_conv_insilico_PCR_amplicons.fasta
+
+# Unload Python module
+module unload python/3.9.15

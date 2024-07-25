@@ -24,47 +24,58 @@ module load blast/2.12.0
 # Define paths
 python_script="/home/people/23203786/scratch/FROGS/libexec/fasta2RDP.py"
 input_taxonomy="/home/people/23203786/scratch/Nelson-Dissertation/taxonomy/protein_db_taxonomy.tsv"
-input_fasta="/home/people/23203786/scratch/Nelson-Dissertation/db/denv4/combined_denv4.fasta"
-output_dir="/home/people/23203786/scratch/Nelson-Dissertation/taxonomy/RDP_output/denv4"
 
-# Create output directory if it doesn't exist
-mkdir -p $output_dir
-output_rdp_fasta="$output_dir/protein_db_taxonomy_RDP.fasta"
-output_rdp_taxonomy="$output_dir/protein_db_taxonomy_RDP.tax"
+# Define serotypes and their paths
+declare -A serotypes=(
+    ["denv1"]="/home/people/23203786/scratch/Nelson-Dissertation/db/denv1/combined_denv1.fasta"
+    ["denv2"]="/home/people/23203786/scratch/Nelson-Dissertation/db/denv2/combined_denv2.fasta"
+    ["denv3"]="/home/people/23203786/scratch/Nelson-Dissertation/db/denv3/combined_denv3.fasta"
+    ["denv4"]="/home/people/23203786/scratch/Nelson-Dissertation/db/denv4/combined_denv4.fasta"
+)
 
-# Remove spaces from FASTA headers using seqkit
-echo "Removing spaces from FASTA headers..."
-$SEQKIT replace -p " " -r "_" -o $output_dir/cleaned_denv4.fasta $input_fasta
+for serotype in "${!serotypes[@]}"; do
+    input_fasta="${serotypes[$serotype]}"
+    output_dir="/home/people/23203786/scratch/Nelson-Dissertation/taxonomy/RDP_output/$serotype"
 
-# Run the Python script to convert to RDP format
-echo "Converting denv4 to RDP format..."
-python3.7 $python_script -d $output_dir/cleaned_denv4.fasta -t $input_taxonomy -r Domain Phylum Class Order Family Genus Species --rdp-taxonomy $output_rdp_taxonomy --rdp-fasta $output_rdp_fasta
+    # Create output directory if it doesn't exist
+    mkdir -p $output_dir
+    output_rdp_fasta="$output_dir/protein_db_taxonomy_RDP.fasta"
+    output_rdp_taxonomy="$output_dir/protein_db_taxonomy_RDP.tax"
 
-# Check if the conversion was successful
-if [[ $? -ne 0 ]]; then
-    echo "Conversion to RDP format failed for denv4"
-    exit 1
-fi
+    # Remove spaces from FASTA headers using seqkit
+    echo "Removing spaces from FASTA headers for $serotype..."
+    $SEQKIT replace -p " " -r "_" -o $output_dir/cleaned_$serotype.fasta $input_fasta
 
-# Validate the converted FASTA file for invalid residues
-echo "Validating FASTA file for denv4..."
-grep -E -v '^[A-Z]+$|^>' $output_rdp_fasta
-if [[ $? -eq 0 ]]; then
-    echo "FASTA file for denv4 contains invalid residues."
-    exit 1
-fi
+    # Run the Python script to convert to RDP format
+    echo "Converting $serotype to RDP format..."
+    python3.7 $python_script -d $output_dir/cleaned_$serotype.fasta -t $input_taxonomy -r Domain Phylum Class Order Family Genus Species --rdp-taxonomy $output_rdp_taxonomy --rdp-fasta $output_rdp_fasta
 
-# Create BLAST database
-echo "Creating BLAST database for denv4..."
-makeblastdb -in $output_rdp_fasta -parse_seqids -taxid_map $output_rdp_taxonomy -dbtype prot -out $output_dir/dengue_blast_db
+    # Check if the conversion was successful
+    if [[ $? -ne 0 ]]; then
+        echo "Conversion to RDP format failed for $serotype"
+        exit 1
+    fi
 
-# Check if the BLAST database creation was successful
-if [[ $? -ne 0 ]]; then
-    echo "BLAST database creation failed for denv4"
-    exit 1
-fi
+    # Validate the converted FASTA file for invalid residues
+    echo "Validating FASTA file for $serotype..."
+    grep -E -v '^[A-Z]+$|^>' $output_rdp_fasta
+    if [[ $? -eq 0 ]]; then
+        echo "FASTA file for $serotype contains invalid residues."
+        exit 1
+    fi
 
-echo "BLAST database for denv4 created successfully."
+    # Create BLAST database
+    echo "Creating BLAST database for $serotype..."
+    makeblastdb -in $output_rdp_fasta -parse_seqids -taxid_map $output_rdp_taxonomy -dbtype prot -out $output_dir/dengue_blast_db
+
+    # Check if the BLAST database creation was successful
+    if [[ $? -ne 0 ]]; then
+        echo "BLAST database creation failed for $serotype"
+        exit 1
+    fi
+
+    echo "BLAST database for $serotype created successfully."
+done
 
 # Unload modules
 module unload python/3.7.4

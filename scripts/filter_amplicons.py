@@ -1,6 +1,6 @@
 import sys
 
-def filter_amplicons(results_file, amplicons_file, output_file, min_length=300, max_length=500):
+def filter_amplicons(results_file, amplicons_file, output_file, min_length=300, max_length=1200):
     # Read the lengths from the results file
     lengths = {}
     with open(results_file, 'r') as res_file:
