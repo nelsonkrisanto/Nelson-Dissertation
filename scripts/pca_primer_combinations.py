@@ -81,7 +81,12 @@ loadings = pca.components_.T
 eigenvalues = pca.explained_variance_
 squared_loadings = loadings ** 2
 contrib = squared_loadings * eigenvalues[np.newaxis, :]
+
+# Exclude region-related columns from the contribution calculation
+excluded_columns = [col for col in df.columns if col.startswith('Region_')]
+non_excluded_columns = [col for col in df.columns if col not in excluded_columns]
 contrib = pd.DataFrame(contrib.T, index=['contrib_dim1', 'contrib_dim2'], columns=df.columns).T
+contrib = contrib.loc[non_excluded_columns]
 
 # Create a DataFrame for the principal components
 famd_row_coords = pd.DataFrame(principal_components, columns=['Dim1', 'Dim2'], index=df.index)
