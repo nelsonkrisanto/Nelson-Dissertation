@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=1.3.1.vadr_amplicons_conv
+#SBATCH --job-name=1.4.vadr_amplicons
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=nelson.krisanto@ucdconnect.ie
 #SBATCH --error=/home/people/23203786/scratch/Nelson-Dissertation/logs/error_%x_%j.txt

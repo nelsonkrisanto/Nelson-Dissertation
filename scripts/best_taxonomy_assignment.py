@@ -15,7 +15,7 @@ def main(taxonomy_file_path, output_file_path):
     taxonomy_data['Percent_ID'] = pd.to_numeric(taxonomy_data['Percent_ID'])
 
     # Filter out entries that do not meet the minimum cutoff for phylum (85%)
-    taxonomy_data = taxonomy_data[taxonomy_data['Percent_ID'] >= 65]
+    taxonomy_data = taxonomy_data[taxonomy_data['Percent_ID'] >= 55]
 
     # Select the taxonomy with the highest percent identity for each sequence
     best_taxonomy = taxonomy_data.loc[taxonomy_data.groupby('Sequence_ID')['Percent_ID'].idxmax()]

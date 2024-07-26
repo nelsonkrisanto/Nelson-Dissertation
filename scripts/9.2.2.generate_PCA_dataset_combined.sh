@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=9.1.1.generate_FAMD_dataset
+#SBATCH --job-name=9.1.2.generate_FAMD_dataset_combined
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=nelson.krisanto@ucdconnect.ie
 #SBATCH --error=/home/people/23203786/scratch/Nelson-Dissertation/logs/error_%x_%j.txt
@@ -17,17 +17,15 @@ module load python/3.9.15
 cd "$tsv_dir"
 
 # Path to the primer combinations script
-combine_script="/home/people/23203786/scratch/Nelson-Dissertation/scripts/FAMD_dataset.py"
+combine_script="/home/people/23203786/scratch/Nelson-Dissertation/scripts/PCA_dataset_combined.py"
 
 # Define input and output file paths
 mapping_file="$tsv_dir/mapping_positions.tsv"
 metadata_file="$tsv_dir/primer_metadata.tsv"
-combinations_file="$tsv_dir/conventional_primer_combinations.tsv"
-output_file="$output_dir/individual_conv_primer_details.tsv"
+output_file="$output_dir/individual_conv_primer_combination_details.tsv"
 
 # Execute the primer combinations script with the input and output files as arguments
-python "$combine_script" "$mapping_file" "$metadata_file" "$combinations_file" "$output_file"
+python "$combine_script" "$mapping_file" "$metadata_file" "$output_file"
 
 # Unload Python module
 module unload python/3.9.15
-    

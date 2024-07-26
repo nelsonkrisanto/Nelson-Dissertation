@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=3.5.1.conventional
+#SBATCH --job-name=3.5.conventional
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=nelson.krisanto@ucdconnect.ie
 #SBATCH --error=/home/people/23203786/scratch/Nelson-Dissertation/logs/error_%x_%j.txt

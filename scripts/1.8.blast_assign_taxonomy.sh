@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=1.7.1.blast_test2
+#SBATCH --job-name=1.8.blast_assign_taxonomy
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=nelson.krisanto@ucdconnect.ie
 #SBATCH --error=/home/people/23203786/scratch/Nelson-Dissertation/logs/error_%x_%j.txt
@@ -55,7 +55,7 @@ for serotype in "${!serotypes[@]}"; do
 
     # Run taxonomy assignment
     echo "Running taxonomy assignment for $serotype..."
-    python3 $taxonomy_script --blast_flavor blastx --cutoff_species 75 --cutoff_family 70 --cutoff_phylum 65 --output_dir $base_output_dir --verbose --blast_file $blast_output -- $unique_query_file $taxonomy_file
+    python3 $taxonomy_script --blast_flavor blastx --cutoff_species 65 --cutoff_family 60 --cutoff_phylum 55 --output_dir $base_output_dir --verbose --blast_file $blast_output -- $unique_query_file $taxonomy_file
     if [ $? -ne 0 ]; then
         echo "Taxonomy assignment for $serotype failed."
         exit 1

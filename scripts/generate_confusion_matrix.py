@@ -1,195 +1,186 @@
-import matplotlib
-matplotlib.use('Agg')
-
 import pandas as pd
 import glob
-import os
-import sys
 from Bio import SeqIO
-from sklearn.metrics import confusion_matrix, classification_report
-import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score, classification_report
 import seaborn as sns
+import matplotlib.pyplot as plt
+from scipy.stats import chi2_contingency
 
-# Complete mapping from Genome Detective to new lineage nomenclature
-genotype_mapping = {
-    '2V': 'DENV-2_genotype_V',
-    '2III': 'DENV-2_genotype_III',
-    '2II': 'DENV-2_genotype_Asian_II',
-    '2I': 'DENV-2_genotype_Asian_I',
-    '2AM': 'DENV-2_genotype_American',
-    '2CO': 'DENV-2_genotype_Cosmopolitan',
-    '1V': 'DENV-1_genotype_V',
-    '1II': 'DENV-1_genotype_II',
-    '1I': 'DENV-1_genotype_I',
-    '1IV': 'DENV-1_genotype_IV',
-    '1III': 'DENV-1_genotype_III',
-    '3V': 'DENV-3_genotype_V',
-    '3IV': 'DENV-3_genotype_IV',
-    '3III': 'DENV-3_genotype_III',
-    '3II': 'DENV-3_genotype_II',
-    '3I': 'DENV-3_genotype_I',
-    '4II': 'DENV-4_genotype_II',
-    '4I': 'DENV-4_genotype_I'
-}
+def process_species(species):
+    if isinstance(species, str):
+        return species.replace('dengue virus type ', 'DENV')
+    return species
 
-def extract_serotype(species_column):
-    species_column = species_column.lower().replace('_', ' ').replace('-', ' ')
-    if 'dengue virus type 1' in species_column or 'dengue virus type i' in species_column:
-        return 'DENV1'
-    elif 'dengue virus type 2' in species_column or 'dengue virus type ii' in species_column:
-        return 'DENV2'
-    elif 'dengue virus type 3' in species_column or 'dengue virus type iii' in species_column:
-        return 'DENV3'
-    elif 'dengue virus type 4' in species_column or 'dengue virus type iv' in species_column:
-        return 'DENV4'
-    return 'Unknown'
+def process_assignment(assignment):
+    if isinstance(assignment, str):
+        assignment = assignment.split('_')[0]
+        if assignment in ["dengue virus type 1", "dengue virus type 2", "dengue virus type 3", "dengue virus type 4"]:
+            return "Unassigned"
+        return assignment
+    return assignment
 
-def map_genotype(assignment_column):
-    genotype_key = assignment_column.split('_')[0]
-    mapped_genotype = genotype_mapping.get(genotype_key, 'Unknown')
-    print(f"Mapping genotype: {genotype_key} to {mapped_genotype}")
-    return mapped_genotype
+def load_amplicon_data(path_pattern):
+    all_files = glob.glob(path_pattern)
+    df_list = []
+    for file in all_files:
+        df = pd.read_csv(file, sep=',')
+        df_list.append(df)
+    df_concat = pd.concat(df_list, ignore_index=True)
+    return df_concat
 
-def read_fasta_sequences(fasta_file):
-    fasta_sequences = {}
-    for record in SeqIO.parse(fasta_file, 'fasta'):
-        seq = str(record.seq).replace("\n", "").strip().lower()
-        fasta_sequences[record.id.strip()] = seq
+def load_fasta_data(path_pattern):
+    all_files = glob.glob(path_pattern)
+    fasta_sequences = []
+    for file in all_files:
+        fasta_sequences.extend(list(SeqIO.parse(file, "fasta")))
     return fasta_sequences
 
-def generate_confusion_matrix(nested_results_folder, genome_detective_fasta_folder, blast_results_file, unique_passed_fasta_file, combined_output_file, confusion_matrix_output_file):
-    print(f"Nested results folder: {nested_results_folder}")
-    print(f"Genome detective FASTA folder: {genome_detective_fasta_folder}")
-    print(f"BLAST results file: {blast_results_file}")
-    print(f"Unique passed FASTA file: {unique_passed_fasta_file}")
-    print(f"Combined output file: {combined_output_file}")
-    print(f"Confusion matrix output file: {confusion_matrix_output_file}")
+def generate_confusion_matrix():
+    amplicons_file_pattern_csv = r'C:\Users\Nelso\OneDrive\Documents\Thesis\data\conv\GD\p*.csv'
+    amplicons_file_pattern_fasta = r'C:\Users\Nelso\OneDrive\Documents\Thesis\data\conv\GD\p*.fasta'
+    clustered_file = r'C:\Users\Nelso\OneDrive\Documents\Thesis\data\test2\test2.csv'
+    primer_file = r'C:\Users\Nelso\OneDrive\Documents\Thesis\data\conv\filtered_linked_amplicons.csv'
+    output_csv = r'C:\Users\Nelso\OneDrive\Documents\Thesis\data\conv\output.csv'
 
-    # Step 1: Read all CSV files from the nested results folder
-    nested_files = glob.glob(os.path.join(nested_results_folder, '*.csv'))
-    nested_dfs = []
-    for file in nested_files:
-        try:
-            df = pd.read_csv(file, engine='python', on_bad_lines='warn')
-            nested_dfs.append(df)
-            print(f"Loaded {file} with {len(df)} entries")
-        except Exception as e:
-            print(f"Failed to read {file}: {e}")
-    nested_combined_df = pd.concat(nested_dfs, ignore_index=True)
-    print(f"Combined nested results have {len(nested_combined_df)} entries")
+    df_amplicons = load_amplicon_data(amplicons_file_pattern_csv)
+    df_amplicons.columns = df_amplicons.columns.str.strip().str.replace('"', '')
+    print("Amplicons Data Columns:", df_amplicons.columns)
+    
+    fasta_sequences = load_fasta_data(amplicons_file_pattern_fasta)
+    
+    fasta_df = pd.DataFrame([{"name": record.id, "sequence": str(record.seq)} for record in fasta_sequences])
+    
+    df_amplicons = df_amplicons.merge(fasta_df, on="name")
+    
+    df_clustered = pd.read_csv(clustered_file, sep=',')
+    df_clustered.columns = df_clustered.columns.str.strip().str.replace('"', '')
+    print("Clustered Data Columns:", df_clustered.columns)
+    
+    df_primers = pd.read_csv(primer_file)
+    print("Primers Data Columns:", df_primers.columns)
+    
+    df_amplicons['species_amplicon'] = df_amplicons['species'].apply(process_species).astype(str)
+    df_amplicons['assignment_amplicon'] = df_amplicons['assignment'].apply(process_assignment).astype(str)
 
-    # Step 2: Read all FASTA files from the genome_detective_fasta_folder
-    fasta_files = glob.glob(os.path.join(genome_detective_fasta_folder, '*.fasta'))
-    genome_detective_sequences = {}
-    for fasta_file in fasta_files:
-        sequences = read_fasta_sequences(fasta_file)
-        genome_detective_sequences.update(sequences)
-    print(f"Total genome detective sequences loaded: {len(genome_detective_sequences)}")
+    df_clustered['species_clustered'] = df_clustered['species'].apply(process_species).astype(str)
+    df_clustered['assignment_clustered'] = df_clustered['assignment'].apply(process_assignment).astype(str)
 
-    # Step 3: Match names between CSV and FASTA to get combined data
-    matched_names = []
-    unmatched_sequences = []
-    for index, row in nested_combined_df.iterrows():
-        genome_detective_name = row['name'].strip()
-        sequence = genome_detective_sequences.get(genome_detective_name, None)
-        if sequence:
-            matched_names.append((genome_detective_name, row['species'], row['assignment'], sequence))
+    df_merged = df_primers.merge(df_amplicons, left_on='Sequence', right_on='sequence')
+    
+    df_merged = df_merged.drop(columns=['assignment', 'species', 'sequence'])
+
+    df_merged = df_merged.merge(df_clustered, left_on='Accession_Number', right_on='name', suffixes=('_amplicon', '_clustered'))
+
+    final_df = df_merged[['Amplicon_ID', 'Primer_Pair', 'Accession_Number', 'Sequence', 'species_clustered', 'species_amplicon', 'assignment_clustered', 'assignment_amplicon']]
+
+    final_df['assignment_amplicon'].replace({"dengue virus type 1": "Unassigned", 
+                                             "dengue virus type 2": "Unassigned", 
+                                             "dengue virus type 3": "Unassigned", 
+                                             "dengue virus type 4": "Unassigned"}, inplace=True)
+    final_df['assignment_amplicon'].fillna("Unassigned", inplace=True)
+    final_df['assignment_clustered'].fillna("Unassigned", inplace=True)
+
+    final_df['species_amplicon'].replace("nan", "Unassigned", inplace=True)
+    final_df['species_clustered'].replace("nan", "Unassigned", inplace=True)
+
+    final_df.to_csv(output_csv, index=False)
+
+    serotype_cm = confusion_matrix(final_df['species_clustered'], final_df['species_amplicon'])
+    genotype_cm = confusion_matrix(final_df['assignment_clustered'], final_df['assignment_amplicon'])
+
+    serotype_labels = sorted(final_df['species_clustered'].unique())
+    genotype_labels = sorted(final_df['assignment_clustered'].unique())
+
+    plt.figure(figsize=(12, 10))
+    sns.heatmap(serotype_cm, annot=True, fmt='d', cmap='Blues', xticklabels=serotype_labels, yticklabels=serotype_labels)
+    plt.title('Serotype Confusion Matrix')
+    plt.xlabel('Amplicon Serotype')
+    plt.ylabel('Clustered Serotype')
+    plt.tight_layout()
+    plt.savefig(r'C:\Users\Nelso\OneDrive\Documents\Thesis\data\conv\serotype_confusion_matrix.png')
+    plt.close()
+
+    plt.figure(figsize=(20, 10))
+    sns.heatmap(genotype_cm, annot=True, fmt='d', cmap='Blues', xticklabels=genotype_labels, yticklabels=genotype_labels)
+    plt.title('Genotype Confusion Matrix')
+    plt.xlabel('Amplicon Genotype')
+    plt.ylabel('Clustered Genotype')
+    plt.tight_layout()
+    plt.savefig(r'C:\Users\Nelso\OneDrive\Documents\Thesis\data\conv\genotype_confusion_matrix.png')
+    plt.close()
+
+    def calculate_metrics(df):
+        y_true = df['species_clustered']
+        y_pred = df['species_amplicon']
+        f1 = f1_score(y_true, y_pred, average='weighted')
+        precision = precision_score(y_true, y_pred, average='weighted')
+        recall = recall_score(y_true, y_pred, average='weighted')
+        report = classification_report(y_true, y_pred, output_dict=True)
+        support = report['weighted avg']['support']
+        return pd.Series({'F1_Score': f1, 'Precision': precision, 'Recall': recall, 'Support': support})
+
+    overall_metrics = final_df.groupby('Primer_Pair').apply(calculate_metrics).reset_index()
+    overall_metrics = overall_metrics.sort_values(by='F1_Score', ascending=False)
+    overall_metrics.to_csv(r'C:\Users\Nelso\OneDrive\Documents\Thesis\data\conv\metrics_overall.csv', index=False)
+
+    best_f1_score = overall_metrics.iloc[0]
+    with open(r'C:\Users\Nelso\OneDrive\Documents\Thesis\data\conv\best_f1_score.txt', 'w') as file:
+        file.write(f"Primer Pair with the Best F1 Score: {best_f1_score['Primer_Pair']} - F1 Score: {best_f1_score['F1_Score']}")
+
+    serotypes = final_df['species_clustered'].unique()
+    for serotype in serotypes:
+        df_serotype = final_df[final_df['species_clustered'] == serotype]
+        serotype_metrics = df_serotype.groupby('Primer_Pair').apply(calculate_metrics).reset_index()
+        serotype_metrics = serotype_metrics.sort_values(by='F1_Score', ascending=False)
+        serotype_metrics.to_csv(f'C:\\Users\\Nelso\\OneDrive\\Documents\\Thesis\\data\\conv\\metrics_serotype_{serotype}.csv', index=False)
+
+    genotypes = final_df['assignment_clustered'].unique()
+    for genotype in genotypes:
+        df_genotype = final_df[final_df['assignment_clustered'] == genotype]
+        genotype_metrics = df_genotype.groupby('Primer_Pair').apply(calculate_metrics).reset_index()
+        genotype_metrics = genotype_metrics.sort_values(by='F1_Score', ascending=False)
+        genotype_metrics.to_csv(f'C:\\Users\\Nelso\\OneDrive\\Documents\\Thesis\\data\\conv\\metrics_genotype_{genotype}.csv', index=False)
+
+    # Format the mismatched classifications output
+    mismatched_classifications = final_df[final_df['assignment_clustered'] != final_df['assignment_amplicon']]
+    mismatched_classifications = mismatched_classifications.groupby(['Primer_Pair', 'assignment_clustered', 'assignment_amplicon']).size().reset_index(name='Number of observations')
+    mismatched_classifications.columns = ['Primer Pair', 'Clustered Genotype', 'Amplicon Genotype', 'Number of Observations']
+    mismatched_classifications = mismatched_classifications.sort_values(by='Number of Observations', ascending=False)
+    mismatched_classifications.to_csv(r'C:\Users\Nelso\OneDrive\Documents\Thesis\data\conv\mismatched_classifications.csv', index=False)
+
+    # Format the missed classifications output
+    missed_classifications = final_df[final_df['assignment_clustered'] != final_df['assignment_amplicon']]
+    missed_classifications = missed_classifications.groupby(['Primer_Pair', 'assignment_clustered']).size().reset_index(name='Number of observations')
+    missed_classifications.columns = ['Primer Pair', 'Clustered Genotype', 'Number of Observations']
+    missed_classifications = missed_classifications.sort_values(by='Number of Observations', ascending=False)
+    missed_classifications.to_csv(r'C:\Users\Nelso\OneDrive\Documents\Thesis\data\conv\missed_classifications.csv', index=False)
+
+    # Statistical test for misclassification
+    misclassified_genotypes = missed_classifications['Clustered Genotype'].value_counts().reset_index()
+    misclassified_genotypes.columns = ['Genotype', 'Count']
+    chi2_missed, p_missed, _, _ = chi2_contingency([misclassified_genotypes['Count'], [misclassified_genotypes['Count'].sum() - x for x in misclassified_genotypes['Count']]])
+    
+    # Statistical test for mismatched classification
+    mismatched_genotypes = mismatched_classifications['Clustered Genotype'].value_counts().reset_index()
+    mismatched_genotypes.columns = ['Genotype', 'Count']
+    chi2_mismatched, p_mismatched, _, _ = chi2_contingency([mismatched_genotypes['Count'], [mismatched_genotypes['Count'].sum() - x for x in mismatched_genotypes['Count']]])
+    
+    with open(r'C:\Users\Nelso\OneDrive\Documents\Thesis\data\conv\statistical_test_results.txt', 'w') as file:
+        file.write(f"Chi-square Test for Missed Genotypes\n")
+        file.write(f"Chi-square value: {chi2_missed}\n")
+        file.write(f"P-value: {p_missed}\n")
+        if p_missed < 0.05:
+            file.write("There is a statistically significant difference in the misclassification of genotypes.\n")
         else:
-            unmatched_sequences.append(genome_detective_name)
-            print(f"Unmatched sequence for: {genome_detective_name}")
-
-    print(f"Total matched names: {len(matched_names)}")
-    print(f"Total unmatched names: {len(unmatched_sequences)}")
-
-    # Step 4: Read unique passed sequences
-    unique_passed_sequences = read_fasta_sequences(unique_passed_fasta_file)
-    print(f"Total unique passed sequences loaded: {len(unique_passed_sequences)}")
-
-    # Step 5: Match sequences and replace names with those from unique passed sequences
-    final_data = []
-    for genome_detective_name, species, assignment_column, sequence in matched_names:
-        matched_name = next((name for name, seq in unique_passed_sequences.items() if seq == sequence), 'Unknown')
-        final_data.append((matched_name, species, assignment_column, sequence))
-        if matched_name == 'Unknown':
-            print(f"Unmatched sequence for: {genome_detective_name}")
-
-    # Step 6: Read BLAST genotyping results
-    try:
-        blast_df = pd.read_csv(blast_results_file, delimiter='\t', header=None, engine='python')
-        blast_df.columns = ['name', 'taxonomy', 'score']
-        blast_df['blast_serotype'] = blast_df['taxonomy'].apply(extract_serotype)
-        blast_df['blast_genotype'] = blast_df['taxonomy'].apply(lambda x: x.split(';')[6] if len(x.split(';')) > 6 else 'Unknown')
-        print(f"Loaded BLAST results with {len(blast_df)} entries")
-    except Exception as e:
-        print(f"Failed to read BLAST results file: {e}")
-        sys.exit(1)
-
-    # Step 7: Combine results
-    final_combined_data = []
-    for name, species, assignment_column, sequence in final_data:
-        blast_entry = blast_df.loc[blast_df['name'] == name]
-        blast_serotype = blast_entry['blast_serotype'].values[0] if not blast_entry.empty else 'Unknown'
-        blast_genotype = blast_entry['blast_genotype'].values[0] if not blast_entry.empty else 'Unknown'
-        genome_detective_serotype = extract_serotype(species)
-        genome_detective_genotype = map_genotype(assignment_column)
-        print(f"Name: {name}, GD Serotype: {genome_detective_serotype}, BLAST Serotype: {blast_serotype}, GD Genotype: {genome_detective_genotype}, BLAST Genotype: {blast_genotype}")
-        final_combined_data.append((name, genome_detective_serotype, blast_serotype, genome_detective_genotype, blast_genotype, sequence))
-
-    combined_df = pd.DataFrame(final_combined_data, columns=['name', 'genome_detective_serotype', 'blast_serotype', 'genome_detective_genotype', 'blast_genotype', 'sequence'])
-    combined_df.to_csv(combined_output_file, index=False)
-    print(f"Combined DataFrame has {len(combined_df)} matching entries")
-
-    if len(combined_df) == 0:
-        print("No matching entries found. Exiting.")
-        return
-
-    # Step 8: Generate confusion matrices
-    def plot_confusion_matrix(true_labels, predicted_labels, unique_labels, title, output_file):
-        cm = confusion_matrix(true_labels, predicted_labels, labels=unique_labels)
-        report = classification_report(true_labels, predicted_labels, labels=unique_labels, target_names=unique_labels)
-        print(report)
-
-        report_file = os.path.join(os.path.dirname(output_file), f"classification_report_{title}.txt")
-        with open(report_file, 'w') as f:
-            f.write(report)
-
-        plt.figure(figsize=(14, 10))
-        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
-                    xticklabels=unique_labels, yticklabels=unique_labels,
-                    cbar_kws={'shrink': 0.75}, linewidths=.5)
-        plt.xlabel('Predicted Labels', fontsize=12)
-        plt.ylabel('True Labels', fontsize=12)
-        plt.title(f'Confusion Matrix - {title}', fontsize=15)
-        plt.xticks(rotation=45, ha='right', fontsize=10)
-        plt.yticks(rotation=0, fontsize=10)
-        plt.tight_layout()
-        plt.savefig(output_file)
-
-    true_serotypes = combined_df['genome_detective_serotype']
-    predicted_serotypes = combined_df['blast_serotype']
-    unique_serotypes = sorted(true_serotypes.unique())
-
-    if unique_serotypes:
-        plot_confusion_matrix(true_serotypes, predicted_serotypes, unique_serotypes, 'Serotypes', confusion_matrix_output_file)
-
-    true_genotypes = combined_df['genome_detective_genotype']
-    predicted_genotypes = combined_df['blast_genotype']
-    unique_genotypes = sorted(true_genotypes.unique())
-
-    if unique_genotypes:
-        genotype_confusion_matrix_output_file = confusion_matrix_output_file.replace('.png', '_genotypes.png')
-        plot_confusion_matrix(true_genotypes, predicted_genotypes, unique_genotypes, 'Genotypes', genotype_confusion_matrix_output_file)
+            file.write("There is no statistically significant difference in the misclassification of genotypes.\n")
+        
+        file.write("\nChi-square Test for Mismatched Genotypes\n")
+        file.write(f"Chi-square value: {chi2_mismatched}\n")
+        file.write(f"P-value: {p_mismatched}\n")
+        if p_mismatched < 0.05:
+            file.write("There is a statistically significant difference in the mismatched classification of genotypes.\n")
+        else:
+            file.write("There is no statistically significant difference in the mismatched classification of genotypes.\n")
 
 if __name__ == "__main__":
-    if len(sys.argv) != 7:
-        print("Usage: python generate_confusion_matrix.py <nested_results_folder> <genome_detective_fasta_folder> <blast_results_file> <unique_passed_fasta_file> <combined_output_file> <confusion_matrix_output_file>")
-        sys.exit(1)
-    
-    nested_results_folder = sys.argv[1]
-    genome_detective_fasta_folder = sys.argv[2]
-    blast_results_file = sys.argv[3]
-    unique_passed_fasta_file = sys.argv[4]
-    combined_output_file = sys.argv[5]
-    confusion_matrix_output_file = sys.argv[6]
-
-    generate_confusion_matrix(nested_results_folder, genome_detective_fasta_folder, blast_results_file, unique_passed_fasta_file, combined_output_file, confusion_matrix_output_file)
+    generate_confusion_matrix()
