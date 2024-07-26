@@ -99,45 +99,35 @@ famd_row_coords = famd_row_coords.merge(serotype_info, left_index=True, right_on
 # Enhance the plot
 plt.figure(figsize=(14, 10))
 
-# Define custom colors for each serotype
-color_map = {
-    'DENV1': '#FF5733',  # Strong red
-    'DENV2': '#33C1FF',  # Strong blue
-    'DENV3': '#75FF33',  # Strong green
-    'DENV4': '#FF33EC',  # Strong pink
-    'ALL': '#000000'     # Black for 'ALL'
-}
-
 # Define custom colors for each region
 region_color_map = {
-    'NS1': '#EDD9BA',
-    'NS3': '#F0E2B6',
-    'NS5': '#DDDAF4'
+    'NS1': '#D5A55D',
+    'NS3': '#E5CD80',
+    'NS5': '#8176D6'
 }
 
-# Use the 'Serotype' column for classification
-serotypes = famd_row_coords['Serotype']
-unique_serotypes = serotypes.unique()
+# Use the 'Region' column for classification
+regions = famd_row_coords['Region']
+unique_regions = regions.unique()
 
 # Scatter plot with colors
 ax = plt.gca()
-for serotype in unique_serotypes:
-    idx = serotypes == serotype
+for region in unique_regions:
+    idx = regions == region
     plt.scatter(famd_row_coords.loc[idx, 'Dim1'], famd_row_coords.loc[idx, 'Dim2'], 
-                label=serotype, alpha=0.6, color=color_map.get(serotype, '#000000'))
-    
-    # Draw ellipses for each region
-    regions = famd_row_coords.loc[idx, 'Region'].unique()
-    for region in regions:
-        region_idx = famd_row_coords['Region'] == region
-        confidence_ellipse(famd_row_coords.loc[region_idx, 'Dim1'], 
-                           famd_row_coords.loc[region_idx, 'Dim2'], 
-                           ax, edgecolor=region_color_map.get(region, '#000000'), alpha=0.5, linewidth=2, facecolor='none')
+                label=region, alpha=0.6, color=region_color_map.get(region, '#000000'))
 
-plt.title('PCA of Individual Primers by Serotype')
+# Draw ellipses for each region
+for region in unique_regions:
+    region_idx = famd_row_coords['Region'] == region
+    confidence_ellipse(famd_row_coords.loc[region_idx, 'Dim1'], 
+                       famd_row_coords.loc[region_idx, 'Dim2'], 
+                       ax, edgecolor=region_color_map.get(region, '#000000'), alpha=0.5, linewidth=2, facecolor='none')
+
+plt.title('PCA of Individual Primers by Region')
 plt.xlabel(f'Component 1 (Variance Explained: {explained_variance_ratio[0]*100:.2f}%)')
 plt.ylabel(f'Component 2 (Variance Explained: {explained_variance_ratio[1]*100:.2f}%)')
-plt.legend(title='Serotype')
+plt.legend(title='Region')
 plt.grid(True)
 
 print(famd_row_coords.head())
