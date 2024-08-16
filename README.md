@@ -1,4 +1,4 @@
-# Nelson Dissertation: Development of an In-Silico Pipeline for Assessing Specificity of Dengue Virus Genotyping via Conventional PCR Assay
+# Development of an In-Silico Pipeline for Assessing Specificity of Dengue Virus Genotyping via Conventional PCR Assay
 
 ## Introduction
 
