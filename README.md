@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This repository contains the resources, scripts, and data related to the dissertation project titled **"Development of an In-Silico Pipeline for Assessing Specificity of Dengue Virus Genotyping via Conventional PCR Assay"** by Nelson Krisanto.
+This repository contains the resources, scripts, and data related to the dissertation project titled **"Development of an In-Silico Pipeline for Assessing Specificity of Dengue Virus Genotyping via Conventional PCR Assay"**.
 
 The project aims to develop and evaluate an in-silico pipeline for assessing the specificity of dengue virus genotyping using conventional PCR assays. The primary objective is to establish a reliable and efficient method for identifying dengue virus serotypes and genotypes from PCR-amplified sequences, which is critical for accurate diagnosis and epidemiological studies.
 
