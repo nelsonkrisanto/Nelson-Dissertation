@@ -163,4 +163,4 @@ The project references various studies and datasets, which are documented in the
 
 ## Contact
 
-For any questions or collaboration requests, please contact Nelson Krisanto at [nelsonkrisanto@example.com](mailto:nelsonkrisanto@example.com).
+For any questions or collaboration requests, please contact Nelson Krisanto at [nelson_krisanto@hotmail.com](mailto:nelson_krisanto@hotmail.com).
